@@ -1,0 +1,116 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: badminton-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smart_badminton
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./backend/src/db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smart_badminton"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: badminton-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ai-service:
+    image: python:3.11-slim
+    container_name: badminton-ai-service
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./ai-service:/app
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+      if [ ! -f app/dataset/booking_history.csv ]; then python app/dataset/generate_dataset.py; fi &&
+      uvicorn main:app --host 0.0.0.0 --port 8001"
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: node:20-alpine
+    container_name: badminton-backend
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      APP_ORIGIN: http://localhost:5173
+      SOCKET_CORS_ORIGIN: http://localhost:5173
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/smart_badminton
+      PG_POOL_MAX: 20
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: super-secret-change-me
+      JWT_EXPIRES_IN: 7d
+      BOOKING_LOCK_TTL_SECONDS: 300
+      BOOKING_SWEEP_INTERVAL_MS: 30000
+      PAYMENT_PROVIDER: stripe_mock
+      PAYMENT_WEBHOOK_SECRET: whsec_change_me
+      PAYMENT_WEBHOOK_TOLERANCE_SECONDS: 300
+      DEFAULT_CURRENCY: USD
+      AI_SERVICE_BASE_URL: http://ai-service:8001
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    command: sh -c "npm install && npm run start"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+
+  web:
+    image: node:20-alpine
+    container_name: badminton-web
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      VITE_API_URL: http://localhost:4000
+    volumes:
+      - ./web:/app
+      - web_node_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_node_modules:
+  web_node_modules:
