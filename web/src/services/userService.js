@@ -1,60 +1,48 @@
-import api from './api';
-import { mockUsers } from './mockData';
+import api, { unwrapPayload } from './api';
 
 function normalizeUser(user) {
   return {
     id: Number(user.id),
-    name: user.username || user.fullName || user.full_name || user.email,
-    username: user.username || user.fullName || user.full_name || '',
+    name: user.fullName || user.full_name || user.username || user.email,
+    username: user.username || '',
+    fullName: user.fullName || user.full_name || '',
     phone: user.phone || '',
-    email: user.email,
-    role: String(user.role || 'user').toLowerCase()
+    email: user.email || '',
+    role: String(user.role || 'user').toLowerCase(),
+    isActive: Boolean(user.isActive ?? user.is_active ?? true),
+    createdAt: user.createdAt || user.created_at,
+    updatedAt: user.updatedAt || user.updated_at
   };
 }
 
-function unwrapPayload(response) {
-  return response?.data?.data || response?.data || {};
+export async function getUsers() {
+  const response = await api.get('/users');
+  const payload = unwrapPayload(response);
+  return Array.isArray(payload) ? payload.map(normalizeUser) : [];
 }
 
-export async function getUsers() {
-  try {
-    const response = await api.get('/users');
-    const payload = unwrapPayload(response);
-    if (Array.isArray(payload)) {
-      return payload.map(normalizeUser);
-    }
-    return [];
-  } catch (_error) {
-    return mockUsers.map((user) => ({
-      id: user.id,
-      name: user.name,
-      username: user.name,
-      phone: user.phone || '',
-      email: user.email,
-      role: user.role
-    }));
-  }
+export async function createUser(payload) {
+  const response = await api.post('/users', payload);
+  return normalizeUser(unwrapPayload(response));
+}
+
+export async function updateUser(userId, payload) {
+  const response = await api.patch(`/users/${userId}`, payload);
+  return normalizeUser(unwrapPayload(response));
+}
+
+export async function deactivateUser(userId) {
+  const response = await api.delete(`/users/${userId}`);
+  return normalizeUser(unwrapPayload(response));
 }
 
 export async function updateUserRole(userId, role) {
   const response = await api.patch(`/users/${userId}/role`, { role });
-  const payload = unwrapPayload(response);
-  return normalizeUser(payload);
+  return normalizeUser(unwrapPayload(response));
 }
 
 export async function getProfile() {
-  try {
-    const response = await api.get('/auth/me');
-    const payload = unwrapPayload(response);
-    return normalizeUser(payload.user || payload);
-  } catch (_error) {
-    return {
-      id: mockUsers[0].id,
-      name: mockUsers[0].name,
-      username: mockUsers[0].name,
-      phone: mockUsers[0].phone || '',
-      email: mockUsers[0].email,
-      role: mockUsers[0].role
-    };
-  }
+  const response = await api.get('/auth/me');
+  const payload = unwrapPayload(response);
+  return normalizeUser(payload.user || payload);
 }

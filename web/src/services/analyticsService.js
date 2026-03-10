@@ -1,88 +1,83 @@
-import api from './api';
-import {
-  mockPeakHours,
-  mockRecentBookings,
-  mockRevenueSeries,
-  mockStats,
-  mockUtilization
-} from './mockData';
+import api, { unwrapPayload } from './api';
 
-export async function getRevenueSeries() {
-  try {
-    const response = await api.get('/analytics/revenue', {
-      params: { start_date: '2026-01-01', end_date: '2026-12-31' }
-    });
+function getDefaultRange() {
+  const now = new Date();
+  const year = now.getFullYear();
+  return {
+    startDate: `${year}-01-01`,
+    endDate: `${year}-12-31`
+  };
+}
 
-    const payload = response.data.data;
-    if (!payload?.dailySeries) {
-      return mockRevenueSeries;
+export async function getDashboardSummary() {
+  const response = await api.get('/analytics/summary');
+  const payload = unwrapPayload(response);
+
+  return {
+    totalRevenueCents: Number(payload.totalRevenueCents || 0),
+    totalBookings: Number(payload.totalBookings || 0),
+    activeUsers: Number(payload.activeUsers || 0),
+    avgUtilizationPercent: Number(payload.avgUtilizationPercent || 0)
+  };
+}
+
+export async function getRevenueSeries({ startDate, endDate } = {}) {
+  const range = {
+    ...getDefaultRange(),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {})
+  };
+
+  const response = await api.get('/analytics/revenue', {
+    params: {
+      start_date: range.startDate,
+      end_date: range.endDate
     }
+  });
 
-    return payload.dailySeries.map((entry) => ({
-      period: entry.date,
-      revenue: Math.round(Number(entry.revenueCents || 0) / 100)
-    }));
-  } catch (_error) {
-    return mockRevenueSeries;
-  }
+  const payload = unwrapPayload(response);
+  return Array.isArray(payload?.dailySeries)
+    ? payload.dailySeries.map((item) => ({
+        period: item.date,
+        revenueCents: Number(item.revenueCents || 0)
+      }))
+    : [];
 }
 
-export async function getUtilizationSeries() {
-  try {
-    const response = await api.get('/analytics/utilization', {
-      params: { start_date: '2026-01-01', end_date: '2026-12-31' }
-    });
+export async function getPeakHoursSeries({ startDate, endDate } = {}) {
+  const range = {
+    ...getDefaultRange(),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {})
+  };
 
-    if (response?.data) {
-      return mockUtilization;
+  const response = await api.get('/analytics/peak-hours', {
+    params: {
+      start_date: range.startDate,
+      end_date: range.endDate
     }
+  });
 
-    return mockUtilization;
-  } catch (_error) {
-    return mockUtilization;
-  }
+  const payload = unwrapPayload(response);
+  return Array.isArray(payload)
+    ? payload.map((item) => ({
+        hour: `${String(item.hour).padStart(2, '0')}:00`,
+        demand: Number(item.bookingCount || item.booking_count || 0)
+      }))
+    : [];
 }
 
-export async function getPeakHoursSeries() {
-  try {
-    const response = await api.get('/analytics/peak-hours', {
-      params: { start_date: '2026-01-01', end_date: '2026-12-31' }
-    });
+export async function getUtilizationByCourt() {
+  const response = await api.get('/analytics/utilization-by-court');
+  const payload = unwrapPayload(response);
 
-    if (Array.isArray(response.data.data) && response.data.data.length > 0) {
-      return response.data.data.map((entry) => ({
-        hour: `${String(entry.hour).padStart(2, '0')}:00`,
-        demand: entry.bookingCount
-      }));
-    }
-
-    return mockPeakHours;
-  } catch (_error) {
-    return mockPeakHours;
-  }
-}
-
-export async function getDashboardStats() {
-  try {
-    const [revenue, utilization] = await Promise.all([getRevenueSeries(), getUtilizationSeries()]);
-
-    const totalRevenue = revenue.reduce((sum, item) => sum + item.revenue, 0);
-    const avgUtilization =
-      utilization.length > 0
-        ? utilization.reduce((sum, item) => sum + item.usage, 0) / utilization.length
-        : 0;
-
-    return {
-      totalRevenue,
-      totalBookings: mockStats.totalBookings,
-      activeUsers: mockStats.activeUsers,
-      avgUtilization
-    };
-  } catch (_error) {
-    return mockStats;
-  }
-}
-
-export async function getRecentBookings() {
-  return mockRecentBookings;
+  return Array.isArray(payload)
+    ? payload.map((item) => ({
+        courtId: Number(item.courtId || item.court_id),
+        court: item.courtName || item.court_name,
+        usage: Number(item.utilizationPercent || 0),
+        confirmedSlots: Number(item.confirmedSlots || 0),
+        totalAvailableSlots: Number(item.totalAvailableSlots || 0)
+      }))
+    : [];
 }

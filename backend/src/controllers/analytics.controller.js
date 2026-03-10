@@ -38,9 +38,21 @@ const getTopUsers = asyncHandler(async (req, res) => {
   return sendSuccess(res, result);
 });
 
+const getSummary = asyncHandler(async (_req, res) => {
+  const result = await analyticsService.getSummary();
+  return sendSuccess(res, result);
+});
+
+const getUtilizationByCourt = asyncHandler(async (_req, res) => {
+  const result = await analyticsService.getUtilizationByCourt();
+  return sendSuccess(res, result);
+});
+
 module.exports = {
   getRevenue,
   getPeakHours,
   getUtilization,
-  getTopUsers
+  getTopUsers,
+  getSummary,
+  getUtilizationByCourt
 };

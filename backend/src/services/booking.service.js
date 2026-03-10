@@ -164,6 +164,96 @@ async function getUserBookings(currentUser, targetUserId, { page = 1, limit = 20
   };
 }
 
+async function getAllBookings(currentUser, { userId, status, dateFrom, dateTo, page = 1, limit = 20 }) {
+  if (currentUser.role !== Role.ADMIN) {
+    throw new ApiError(403, 'Admin permission required', 'FORBIDDEN');
+  }
+
+  const parsedPage = Number(page);
+  const parsedLimit = Number(limit);
+  const safePage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const safeLimit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 20;
+  const offset = (safePage - 1) * safeLimit;
+
+  let normalizedUserId;
+  if (userId !== undefined && userId !== null && String(userId).trim() !== '') {
+    normalizedUserId = Number(userId);
+    if (!Number.isInteger(normalizedUserId)) {
+      throw new ApiError(400, 'userId must be an integer', 'VALIDATION_ERROR');
+    }
+  }
+
+  let normalizedStatus;
+  if (status !== undefined && status !== null && String(status).trim() !== '') {
+    normalizedStatus = String(status).trim().toUpperCase();
+    const allowedStatuses = [BookingStatus.LOCKED, BookingStatus.CONFIRMED, BookingStatus.CANCELLED];
+    if (!allowedStatuses.includes(normalizedStatus)) {
+      throw new ApiError(400, 'status must be LOCKED, CONFIRMED, or CANCELLED', 'VALIDATION_ERROR');
+    }
+  }
+
+  let normalizedDateFrom;
+  if (dateFrom !== undefined && dateFrom !== null && String(dateFrom).trim() !== '') {
+    normalizedDateFrom = String(dateFrom).trim();
+    assertISODate(normalizedDateFrom, 'dateFrom');
+  }
+
+  let normalizedDateTo;
+  if (dateTo !== undefined && dateTo !== null && String(dateTo).trim() !== '') {
+    normalizedDateTo = String(dateTo).trim();
+    assertISODate(normalizedDateTo, 'dateTo');
+  }
+
+  if (normalizedDateFrom && normalizedDateTo) {
+    const fromDate = new Date(`${normalizedDateFrom}T00:00:00.000Z`);
+    const toDate = new Date(`${normalizedDateTo}T00:00:00.000Z`);
+    if (fromDate > toDate) {
+      throw new ApiError(400, 'dateFrom must be less than or equal to dateTo', 'VALIDATION_ERROR');
+    }
+  }
+
+  const filters = {
+    userId: normalizedUserId,
+    status: normalizedStatus,
+    dateFrom: normalizedDateFrom,
+    dateTo: normalizedDateTo
+  };
+
+  const [items, total] = await Promise.all([
+    bookingRepository.listAllBookings({ ...filters, limit: safeLimit, offset }),
+    bookingRepository.countAllBookings(filters)
+  ]);
+
+  return {
+    items: items.map((row) => ({
+      id: Number(row.id),
+      userId: Number(row.user_id),
+      userName: row.user_name,
+      courtId: Number(row.court_id),
+      slotId: Number(row.slot_id),
+      date: row.booking_date,
+      status: row.status,
+      amountCents: Number(row.amount_cents),
+      currency: row.currency,
+      lockExpiresAt: row.lock_expires_at,
+      confirmedAt: row.confirmed_at,
+      cancelledAt: row.cancelled_at,
+      courtName: row.court_name,
+      slotLabel: row.slot_label,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    })),
+    pagination: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages: Math.ceil(total / safeLimit)
+    }
+  };
+}
+
 async function cancelBooking(currentUser, bookingId) {
   const parsedBookingId = Number(bookingId);
   if (!Number.isInteger(parsedBookingId)) {
@@ -204,6 +294,7 @@ async function cancelBooking(currentUser, bookingId) {
 module.exports = {
   createBooking,
   getUserBookings,
+  getAllBookings,
   cancelBooking,
   toSlotUpdatedPayload
 };

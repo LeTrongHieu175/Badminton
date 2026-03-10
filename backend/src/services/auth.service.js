@@ -12,6 +12,7 @@ function toPublicUser(user) {
     phone: user.phone,
     email: user.email,
     role: user.role,
+    isActive: user.is_active,
     createdAt: user.created_at
   };
 }
@@ -39,11 +40,11 @@ async function register({ username, fullName, email, mail, phone, password }) {
   const normalizedFullName = String(fullName || normalizedUsername).trim() || normalizedUsername;
 
   if (!normalizedUsername || !normalizedEmail || !normalizedPhone || !password) {
-    throw new ApiError(400, 'username, mail, phone, and password are required', 'VALIDATION_ERROR');
+    throw new ApiError(400, 'username, email, phone, and password are required', 'VALIDATION_ERROR');
   }
 
   if (!validateEmail(normalizedEmail)) {
-    throw new ApiError(400, 'mail is invalid', 'VALIDATION_ERROR');
+    throw new ApiError(400, 'email is invalid', 'VALIDATION_ERROR');
   }
 
   if (!/^[0-9+()-]{8,20}$/.test(normalizedPhone)) {
@@ -109,6 +110,10 @@ async function login({ identifier, username, email, mail, password }) {
     throw new ApiError(401, 'Invalid credentials', 'INVALID_CREDENTIALS');
   }
 
+  if (!user.is_active) {
+    throw new ApiError(403, 'User account is deactivated', 'USER_DEACTIVATED');
+  }
+
   const accessToken = signAccessToken({
     id: user.id,
     username: user.username,
@@ -126,6 +131,10 @@ async function getCurrentUser(userId) {
   const user = await userRepository.findById(userId);
   if (!user) {
     throw new ApiError(404, 'User not found', 'USER_NOT_FOUND');
+  }
+
+  if (!user.is_active) {
+    throw new ApiError(403, 'User account is deactivated', 'USER_DEACTIVATED');
   }
 
   return {

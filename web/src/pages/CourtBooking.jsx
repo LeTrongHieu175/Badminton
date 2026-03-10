@@ -3,14 +3,21 @@ import { useParams } from 'react-router-dom';
 import BookingModal from '../components/BookingModal';
 import { useCreateBooking } from '../hooks/useBookings';
 import { useCourt, useCourtAvailability } from '../hooks/useCourts';
+import { formatCurrencyFromCents, formatStatusLabel } from '../utils/formatters';
+import { getApiErrorMessage } from '../utils/errors';
 
 function CourtBooking() {
   const { id } = useParams();
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedSlot, setSelectedSlot] = useState(null);
 
-  const { data: court } = useCourt(id);
-  const { data: slots = [], isLoading } = useCourtAvailability(id, date);
+  const { data: court, isError: isCourtError, error: courtError } = useCourt(id);
+  const {
+    data: slots = [],
+    isLoading,
+    isError: isSlotsError,
+    error: slotsError
+  } = useCourtAvailability(id, date);
   const createBookingMutation = useCreateBooking();
 
   const availabilityStats = useMemo(() => {
@@ -43,13 +50,13 @@ function CourtBooking() {
   return (
     <div className='space-y-6'>
       <section className='surface-card p-6'>
-        <h2 className='section-title'>Court Booking</h2>
+        <h2 className='section-title'>Đặt sân</h2>
         <p className='subtle-copy mt-1'>
-          {court ? `${court.name} · ${court.location}` : 'Pick your slot and lock it for payment.'}
+          {court ? `${court.name} · ${court.location || 'Chưa cập nhật vị trí'}` : 'Chọn khung giờ để đặt sân.'}
         </p>
 
         <div className='mt-4 flex flex-wrap items-center gap-3'>
-          <label className='text-sm font-medium text-slate-600'>Booking date</label>
+          <label className='text-sm font-medium text-slate-600'>Ngày đặt sân</label>
           <input
             type='date'
             value={date}
@@ -57,12 +64,36 @@ function CourtBooking() {
             className='rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-brand-300 focus:ring'
           />
           <p className='text-xs text-slate-500'>
-            Available slots: {availabilityStats.available} / {availabilityStats.total}
+            Slot còn trống: {availabilityStats.available} / {availabilityStats.total}
           </p>
         </div>
       </section>
 
-      {isLoading ? <p className='text-sm text-slate-500'>Loading slots...</p> : null}
+      {isCourtError ? (
+        <div className='rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+          {getApiErrorMessage(courtError, 'Không tải được thông tin sân.')}
+        </div>
+      ) : null}
+
+      {isLoading ? <p className='text-sm text-slate-500'>Đang tải khung giờ...</p> : null}
+
+      {isSlotsError ? (
+        <div className='rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+          {getApiErrorMessage(slotsError, 'Không tải được khung giờ của sân.')}
+        </div>
+      ) : null}
+
+      {createBookingMutation.isError ? (
+        <div className='rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+          {getApiErrorMessage(createBookingMutation.error, 'Đặt sân thất bại. Vui lòng thử lại.')}
+        </div>
+      ) : null}
+
+      {!isLoading && !isSlotsError && slots.length === 0 ? (
+        <div className='rounded-xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500'>
+          Chưa có slot nào được cấu hình cho sân này.
+        </div>
+      ) : null}
 
       <section className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
         {slots.map((slot) => (
@@ -77,7 +108,7 @@ function CourtBooking() {
             }`}
           >
             <p className='text-sm font-semibold text-slate-900'>{slot.label}</p>
-            <p className='mt-1 text-xs text-slate-500'>${slot.price.toFixed(2)}</p>
+            <p className='mt-1 text-xs text-slate-500'>{formatCurrencyFromCents(slot.priceCents)}</p>
             <span
               className={`mt-3 inline-block rounded-full px-2 py-1 text-xs font-semibold ${
                 slot.status === 'AVAILABLE'
@@ -89,7 +120,7 @@ function CourtBooking() {
                       : 'bg-slate-200 text-slate-700'
               }`}
             >
-              {slot.status}
+              {formatStatusLabel(slot.status)}
             </span>
           </button>
         ))}

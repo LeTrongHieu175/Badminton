@@ -2,22 +2,24 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   cancelBooking,
   createBooking,
-  getRecentBookings,
+  getAllBookings,
   getUserBookings
 } from '../services/bookingService';
 
-export function useUserBookings(userId) {
+export function useUserBookings(userId, options = {}) {
+  const { page = 1, limit = 20 } = options;
+
   return useQuery({
-    queryKey: ['bookings', 'user', userId],
-    queryFn: () => getUserBookings(userId),
+    queryKey: ['bookings', 'user', userId, page, limit],
+    queryFn: () => getUserBookings(userId, { page, limit }),
     enabled: Boolean(userId)
   });
 }
 
-export function useRecentBookings() {
+export function useAdminBookings(filters = {}) {
   return useQuery({
-    queryKey: ['bookings', 'recent'],
-    queryFn: getRecentBookings
+    queryKey: ['bookings', 'admin', filters],
+    queryFn: () => getAllBookings(filters)
   });
 }
 
@@ -29,6 +31,7 @@ export function useCreateBooking() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['availability', variables.courtId, variables.date] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['court-recommendations', variables.date] });
     }
   });
 }

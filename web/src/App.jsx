@@ -20,7 +20,7 @@ function RequireAuth({ children }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <p className='p-6 text-sm text-slate-500'>Authenticating...</p>;
+    return <p className='p-6 text-sm text-slate-500'>Đang xác thực...</p>;
   }
 
   if (!isAuthenticated) {
@@ -35,7 +35,14 @@ function App() {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path='/' element={<Home />} />
-        <Route path='/courts' element={<CourtList />} />
+        <Route
+          path='/courts'
+          element={
+            <RequireAuth>
+              <CourtList />
+            </RequireAuth>
+          }
+        />
         <Route
           path='/courts/:id/booking'
           element={

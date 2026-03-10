@@ -224,6 +224,87 @@ async function countBookingsByUserId(userId) {
   return result.rows[0].count;
 }
 
+function buildAdminBookingFilters({ userId, status, dateFrom, dateTo }) {
+  const clauses = [];
+  const values = [];
+
+  if (userId !== undefined && userId !== null) {
+    clauses.push(`b.user_id = $${values.length + 1}`);
+    values.push(userId);
+  }
+
+  if (status) {
+    clauses.push(`b.status = $${values.length + 1}`);
+    values.push(status);
+  }
+
+  if (dateFrom) {
+    clauses.push(`b.booking_date >= $${values.length + 1}`);
+    values.push(dateFrom);
+  }
+
+  if (dateTo) {
+    clauses.push(`b.booking_date <= $${values.length + 1}`);
+    values.push(dateTo);
+  }
+
+  return {
+    whereClause: clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '',
+    values
+  };
+}
+
+async function listAllBookings({ userId, status, dateFrom, dateTo, limit, offset }) {
+  const { whereClause, values } = buildAdminBookingFilters({ userId, status, dateFrom, dateTo });
+  const result = await pool.query(
+    `
+      SELECT
+        b.id,
+        b.user_id,
+        b.court_id,
+        b.slot_id,
+        b.booking_date,
+        b.status,
+        b.amount_cents,
+        b.currency,
+        b.lock_expires_at,
+        b.confirmed_at,
+        b.cancelled_at,
+        b.created_at,
+        b.updated_at,
+        COALESCE(NULLIF(u.full_name, ''), u.username, u.email) AS user_name,
+        c.name AS court_name,
+        s.label AS slot_label,
+        s.start_time,
+        s.end_time
+      FROM bookings b
+      JOIN users u ON u.id = b.user_id
+      JOIN courts c ON c.id = b.court_id
+      JOIN court_slots s ON s.id = b.slot_id
+      ${whereClause}
+      ORDER BY b.created_at DESC
+      LIMIT $${values.length + 1} OFFSET $${values.length + 2}
+    `,
+    [...values, limit, offset]
+  );
+
+  return result.rows;
+}
+
+async function countAllBookings({ userId, status, dateFrom, dateTo }) {
+  const { whereClause, values } = buildAdminBookingFilters({ userId, status, dateFrom, dateTo });
+  const result = await pool.query(
+    `
+      SELECT COUNT(*)::INT AS count
+      FROM bookings b
+      ${whereClause}
+    `,
+    values
+  );
+
+  return result.rows[0].count;
+}
+
 async function cancelBooking(client, bookingId) {
   const result = await dbClient(client).query(
     `
@@ -326,6 +407,8 @@ module.exports = {
   findBookingByIdForUpdate,
   listBookingsByUserId,
   countBookingsByUserId,
+  listAllBookings,
+  countAllBookings,
   cancelBooking,
   markBookingConfirmed,
   cancelExpiredLockedBookings

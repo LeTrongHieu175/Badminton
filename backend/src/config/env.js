@@ -27,7 +27,9 @@ const env = {
   PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER || 'stripe_mock',
   PAYMENT_WEBHOOK_SECRET: process.env.PAYMENT_WEBHOOK_SECRET || 'whsec_dev_change_me',
   PAYMENT_WEBHOOK_TOLERANCE_SECONDS: toInt(process.env.PAYMENT_WEBHOOK_TOLERANCE_SECONDS, 300),
-  DEFAULT_CURRENCY: (process.env.DEFAULT_CURRENCY || 'USD').toUpperCase()
+  DEFAULT_CURRENCY: (process.env.DEFAULT_CURRENCY || 'USD').toUpperCase(),
+
+  AI_SERVICE_BASE_URL: process.env.AI_SERVICE_BASE_URL || 'http://localhost:8001'
 };
 
 module.exports = { env };

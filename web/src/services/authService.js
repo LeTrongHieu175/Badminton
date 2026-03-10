@@ -1,8 +1,4 @@
-import api from './api';
-
-function unwrapPayload(response) {
-  return response?.data?.data || response?.data || {};
-}
+import api, { unwrapPayload } from './api';
 
 export async function loginUser({ identifier, password }) {
   const response = await api.post('/auth/login', {
@@ -17,10 +13,11 @@ export async function loginUser({ identifier, password }) {
   };
 }
 
-export async function registerUser({ username, mail, phone, password }) {
+export async function registerUser({ username, email, phone, password }) {
   const response = await api.post('/auth/register', {
     username,
-    mail,
+    email,
+    mail: email,
     phone,
     password
   });

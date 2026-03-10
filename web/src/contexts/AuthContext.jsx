@@ -14,11 +14,13 @@ function normalizeUser(user) {
 
   return {
     id: Number(user.id),
-    name: user.username || user.fullName || user.full_name || user.email || 'User',
-    username: user.username || user.fullName || user.full_name || '',
+    name: user.fullName || user.full_name || user.username || user.email || 'Người dùng',
+    username: user.username || '',
+    fullName: user.fullName || user.full_name || '',
     email: user.email || '',
     phone: user.phone || '',
-    role: String(user.role || 'user').toLowerCase()
+    role: String(user.role || 'user').toLowerCase(),
+    isActive: Boolean(user.isActive ?? user.is_active ?? true)
   };
 }
 
@@ -113,10 +115,10 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async ({ username, mail, phone, password }) => {
+  const register = async ({ username, email, phone, password }) => {
     setIsSubmitting(true);
     try {
-      const { user: apiUser, accessToken } = await registerUser({ username, mail, phone, password });
+      const { user: apiUser, accessToken } = await registerUser({ username, email, phone, password });
       const normalizedUser = normalizeUser(apiUser);
       persistAuth(normalizedUser, accessToken);
       setUser(normalizedUser);

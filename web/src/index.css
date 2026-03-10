@@ -1,11 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: 'Inter', 'SF Pro Text', 'Segoe UI', sans-serif;
+  --bg-top: #d6f7e8;
+  --bg-mid: #f7fafc;
+  --bg-bottom: #eef4ff;
+  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
   color: #0f172a;
-  background: radial-gradient(circle at 0% 0%, #d8f8ec 0%, #f8fafc 38%, #f8fafc 100%);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(16, 185, 129, 0.22), transparent 70%),
+    radial-gradient(1000px 600px at 100% 0%, rgba(2, 132, 199, 0.18), transparent 70%),
+    linear-gradient(160deg, var(--bg-top) 0%, var(--bg-mid) 45%, var(--bg-bottom) 100%);
 }
 
 * {
@@ -26,7 +34,7 @@ a {
 
 @layer components {
   .surface-card {
-    @apply rounded-2xl border border-slate-200/80 bg-white/85 backdrop-blur-sm shadow-panel;
+    @apply rounded-2xl border border-slate-200/80 bg-white/90 backdrop-blur-sm shadow-panel;
   }
 
   .section-title {

@@ -1,3 +1,5 @@
+import { formatCurrencyFromCents, formatDateVi, formatStatusLabel } from '../utils/formatters';
+
 function formatStatusBadge(status) {
   const map = {
     CONFIRMED: 'bg-emerald-50 text-emerald-700',
@@ -9,34 +11,42 @@ function formatStatusBadge(status) {
   return map[status] || 'bg-slate-100 text-slate-700';
 }
 
-function BookingTable({ rows }) {
+function BookingTable({ rows, showUser = true, emptyMessage = 'Chưa có dữ liệu đặt sân.' }) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return (
+      <div className='rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500'>
+        {emptyMessage}
+      </div>
+    );
+  }
+
   return (
     <div className='overflow-hidden rounded-xl border border-slate-200'>
       <div className='overflow-x-auto'>
         <table className='min-w-full divide-y divide-slate-200 text-sm'>
           <thead className='bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500'>
             <tr>
-              <th className='px-4 py-3'>Date</th>
-              <th className='px-4 py-3'>Court</th>
-              <th className='px-4 py-3'>Slot</th>
-              <th className='px-4 py-3'>User</th>
-              <th className='px-4 py-3'>Status</th>
-              <th className='px-4 py-3'>Amount</th>
+              <th className='px-4 py-3'>Ngày</th>
+              <th className='px-4 py-3'>Sân</th>
+              <th className='px-4 py-3'>Khung giờ</th>
+              {showUser ? <th className='px-4 py-3'>Người đặt</th> : null}
+              <th className='px-4 py-3'>Trạng thái</th>
+              <th className='px-4 py-3'>Số tiền</th>
             </tr>
           </thead>
           <tbody className='divide-y divide-slate-100 bg-white'>
             {rows.map((row) => (
               <tr key={row.id} className='hover:bg-slate-50'>
-                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{row.bookingDate}</td>
+                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{formatDateVi(row.bookingDate)}</td>
                 <td className='whitespace-nowrap px-4 py-3 font-medium text-slate-900'>{row.courtName}</td>
                 <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{row.slotLabel}</td>
-                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{row.userName}</td>
+                {showUser ? <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{row.userName || '-'}</td> : null}
                 <td className='whitespace-nowrap px-4 py-3'>
                   <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${formatStatusBadge(row.status)}`}>
-                    {row.status}
+                    {formatStatusLabel(row.status)}
                   </span>
                 </td>
-                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>${row.amount.toFixed(2)}</td>
+                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{formatCurrencyFromCents(row.amountCents)}</td>
               </tr>
             ))}
           </tbody>

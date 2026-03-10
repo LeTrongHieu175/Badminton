@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { useAdminDashboard } from '../../hooks/useAdminDashboard';
+import { getApiErrorMessage } from '../../utils/errors';
 
 function AdminAIInsights() {
-  const { data, isLoading } = useAdminDashboard();
+  const { data, isLoading, isError, error } = useAdminDashboard();
 
   const insights = useMemo(() => {
     if (!data) {
@@ -15,29 +16,45 @@ function AdminAIInsights() {
 
     return [
       {
-        title: 'Peak hour strategy',
-        content: `${topHour.hour} is the strongest demand window. Consider dynamic pricing or reservation limits.`
+        title: 'Chiến lược giờ cao điểm',
+        content: topHour
+          ? `${topHour.hour} là khung giờ có nhu cầu cao nhất. Nên cân nhắc chính sách giá linh hoạt hoặc thêm nhân sự vận hành.`
+          : 'Chưa đủ dữ liệu để xác định giờ cao điểm.'
       },
       {
-        title: 'Utilization gap',
-        content: `${weakestCourt.court} is underused. Promote bundle discounts during off-peak hours.`
+        title: 'Sân cần kích cầu',
+        content: weakestCourt
+          ? `${weakestCourt.court} đang có tỷ lệ sử dụng thấp nhất. Nên chạy ưu đãi theo khung giờ thấp điểm.`
+          : 'Chưa đủ dữ liệu để xác định sân cần kích cầu.'
       },
       {
-        title: 'Expansion signal',
-        content: `${strongestCourt.court} has consistently high usage. Evaluate adding adjacent slot inventory.`
+        title: 'Tín hiệu mở rộng',
+        content: strongestCourt
+          ? `${strongestCourt.court} có công suất cao ổn định. Có thể mở thêm slot hoặc tăng ưu tiên hiển thị.`
+          : 'Chưa đủ dữ liệu để xác định tín hiệu mở rộng.'
       }
     ];
   }, [data]);
 
-  if (isLoading || !data) {
-    return <p className='text-sm text-slate-500'>Generating insights...</p>;
+  if (isLoading) {
+    return <p className='text-sm text-slate-500'>Đang tạo gợi ý AI...</p>;
+  }
+
+  if (isError || !data) {
+    return (
+      <div className='rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+        {getApiErrorMessage(error, 'Không tải được dữ liệu gợi ý AI.')}
+      </div>
+    );
   }
 
   return (
     <div className='space-y-4'>
       <section className='surface-card p-5'>
-        <h2 className='text-xl font-semibold text-slate-900'>AI Insights</h2>
-        <p className='mt-1 text-sm text-slate-600'>Operational recommendations generated from booking and utilization trends.</p>
+        <h2 className='text-xl font-semibold text-slate-900'>Gợi ý vận hành từ dữ liệu</h2>
+        <p className='mt-1 text-sm text-slate-600'>
+          Các khuyến nghị được tổng hợp từ dữ liệu đặt sân và công suất sử dụng thực tế.
+        </p>
       </section>
 
       <section className='grid gap-4 md:grid-cols-3'>

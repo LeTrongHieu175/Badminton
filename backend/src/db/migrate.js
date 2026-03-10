@@ -16,6 +16,11 @@ async function runMigrations() {
   `);
 
   await query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE
+  `);
+
+  await query(`
     UPDATE users
     SET username = CONCAT(LOWER(SPLIT_PART(email, '@', 1)), '_', id)
     WHERE username IS NULL OR BTRIM(username) = ''

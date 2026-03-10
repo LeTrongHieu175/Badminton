@@ -2,13 +2,13 @@ import { NavLink } from 'react-router-dom';
 import clsx from 'clsx';
 
 const ADMIN_MENU = [
-  { label: 'Dashboard', to: '/admin' },
-  { label: 'Courts', to: '/admin/courts' },
-  { label: 'Bookings', to: '/admin/bookings' },
-  { label: 'Users', to: '/admin/users' },
-  { label: 'Analytics', to: '/admin/analytics' },
-  { label: 'AI Insights', to: '/admin/ai-insights' },
-  { label: 'Settings', to: '/admin/settings' }
+  { label: 'Tổng quan', to: '/admin' },
+  { label: 'Quản lý sân', to: '/admin/courts' },
+  { label: 'Đơn đặt sân', to: '/admin/bookings' },
+  { label: 'Người dùng', to: '/admin/users' },
+  { label: 'Phân tích', to: '/admin/analytics' },
+  { label: 'Gợi ý AI', to: '/admin/ai-insights' },
+  { label: 'Cài đặt', to: '/admin/settings' }
 ];
 
 function Sidebar({ isOpen, onClose }) {
@@ -29,7 +29,7 @@ function Sidebar({ isOpen, onClose }) {
       >
         <div className='mb-8 px-2'>
           <p className='text-xs uppercase tracking-[0.2em] text-brand-600'>Smart Badminton</p>
-          <h2 className='mt-1 text-xl font-semibold text-slate-900'>Control Center</h2>
+          <h2 className='mt-1 text-xl font-semibold text-slate-900'>Trung tâm điều khiển</h2>
         </div>
 
         <nav className='space-y-1'>

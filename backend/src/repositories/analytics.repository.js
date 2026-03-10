@@ -121,10 +121,111 @@ async function getTopUsersBySpend(startDate, endDate, limit) {
   }));
 }
 
+async function getAnalyticsSummary() {
+  const result = await query(
+    `
+      WITH booking_window AS (
+        SELECT
+          COALESCE(MIN(booking_date), CURRENT_DATE) AS min_date,
+          COALESCE(MAX(booking_date), CURRENT_DATE) AS max_date
+        FROM bookings
+        WHERE status = 'CONFIRMED'
+      ),
+      slots_per_day AS (
+        SELECT COUNT(*)::INT AS count
+        FROM court_slots s
+        JOIN courts c ON c.id = s.court_id
+        WHERE c.is_active = TRUE AND s.is_active = TRUE
+      )
+      SELECT
+        (
+          SELECT COALESCE(SUM(p.amount_cents), 0)::BIGINT
+          FROM payments p
+          JOIN bookings b ON b.id = p.booking_id
+          WHERE p.status = 'succeeded' AND b.status = 'CONFIRMED'
+        ) AS total_revenue_cents,
+        (
+          SELECT COUNT(*)::INT
+          FROM bookings
+        ) AS total_bookings,
+        (
+          SELECT COUNT(*)::INT
+          FROM users
+          WHERE is_active = TRUE
+        ) AS active_users,
+        (
+          SELECT COUNT(*)::INT
+          FROM bookings
+          WHERE status = 'CONFIRMED'
+        ) AS confirmed_bookings,
+        (
+          SELECT count FROM slots_per_day
+        ) AS slots_per_day,
+        (
+          SELECT (max_date - min_date + 1)::INT
+          FROM booking_window
+        ) AS booking_days
+    `
+  );
+
+  return result.rows[0];
+}
+
+async function getUtilizationByCourt() {
+  const result = await query(
+    `
+      WITH booking_window AS (
+        SELECT
+          COALESCE(MIN(booking_date), CURRENT_DATE) AS min_date,
+          COALESCE(MAX(booking_date), CURRENT_DATE) AS max_date
+        FROM bookings
+      )
+      SELECT
+        c.id AS court_id,
+        c.name AS court_name,
+        COALESCE(confirmed.confirmed_slots, 0)::INT AS confirmed_slots,
+        (COALESCE(active_slots.active_slot_count, 0) * ((w.max_date - w.min_date + 1)::INT))::INT AS total_available_slots
+      FROM courts c
+      CROSS JOIN booking_window w
+      LEFT JOIN (
+        SELECT b.court_id, COUNT(*)::INT AS confirmed_slots
+        FROM bookings b
+        WHERE b.status = 'CONFIRMED'
+        GROUP BY b.court_id
+      ) confirmed ON confirmed.court_id = c.id
+      LEFT JOIN (
+        SELECT s.court_id, COUNT(*)::INT AS active_slot_count
+        FROM court_slots s
+        WHERE s.is_active = TRUE
+        GROUP BY s.court_id
+      ) active_slots ON active_slots.court_id = c.id
+      WHERE c.is_active = TRUE
+      ORDER BY c.id ASC
+    `
+  );
+
+  return result.rows.map((row) => {
+    const confirmedSlots = Number(row.confirmed_slots || 0);
+    const totalAvailableSlots = Number(row.total_available_slots || 0);
+    const utilizationRate = totalAvailableSlots > 0 ? confirmedSlots / totalAvailableSlots : 0;
+
+    return {
+      courtId: Number(row.court_id),
+      courtName: row.court_name,
+      confirmedSlots,
+      totalAvailableSlots,
+      utilizationRate,
+      utilizationPercent: Number((utilizationRate * 100).toFixed(2))
+    };
+  });
+}
+
 module.exports = {
   getRevenueSummary,
   getPeakHours,
   getConfirmedBookingCount,
   getActiveSlotsPerDay,
-  getTopUsersBySpend
+  getTopUsersBySpend,
+  getAnalyticsSummary,
+  getUtilizationByCourt
 };

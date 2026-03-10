@@ -1,28 +1,25 @@
 import { useMemo } from 'react';
-import { NavLink, Outlet, Link } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { formatRoleLabel } from '../utils/formatters';
 
 function PublicLayout() {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
 
   const links = useMemo(() => {
-    const base = [
-      { label: 'Home', to: '/' },
-      { label: 'Courts', to: '/courts' }
-    ];
-
     if (!isAuthenticated) {
-      return base;
+      return [{ label: 'Trang chủ', to: '/' }];
     }
 
-    base.push(
+    const base = [
       { label: 'Dashboard', to: '/dashboard' },
-      { label: 'History', to: '/bookings' },
-      { label: 'Profile', to: '/profile' }
-    );
+      { label: 'Đặt sân', to: '/courts' },
+      { label: 'Lịch sử đặt sân', to: '/bookings' },
+      { label: 'Cá nhân', to: '/profile' }
+    ];
 
     if (isAdmin) {
-      base.push({ label: 'Admin', to: '/admin' });
+      base.push({ label: 'Quản trị', to: '/admin' });
     }
 
     return base;
@@ -30,11 +27,11 @@ function PublicLayout() {
 
   return (
     <div className='min-h-screen'>
-      <header className='sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur-sm'>
+      <header className='sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 backdrop-blur-sm'>
         <div className='mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8'>
           <div>
             <p className='text-xs uppercase tracking-[0.2em] text-brand-600'>Smart Badminton</p>
-            <h1 className='text-lg font-semibold text-slate-900'>Court Management</h1>
+            <h1 className='text-lg font-semibold text-slate-900'>Hệ thống quản lý sân cầu lông</h1>
           </div>
 
           <nav className='hidden items-center gap-2 md:flex'>
@@ -57,20 +54,20 @@ function PublicLayout() {
           {isAuthenticated ? (
             <div className='text-right'>
               <p className='text-sm font-semibold text-slate-900'>{user?.name}</p>
-              <p className='text-xs uppercase text-slate-500'>{user?.role}</p>
+              <p className='text-xs uppercase text-slate-500'>{formatRoleLabel(user?.role)}</p>
               <button
                 type='button'
                 onClick={logout}
                 className='mt-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100'
               >
-                Logout
+                Đăng xuất
               </button>
             </div>
           ) : (
             <div className='text-right'>
-              <p className='text-sm font-semibold text-slate-900'>Guest</p>
+              <p className='text-sm font-semibold text-slate-900'>Khách</p>
               <Link to='/' className='text-xs uppercase text-brand-700 hover:underline'>
-                Login / Register
+                Đăng nhập / Đăng ký
               </Link>
             </div>
           )}

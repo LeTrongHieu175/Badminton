@@ -4,9 +4,11 @@ const { requireQueryFields } = require('../middleware/validate.middleware');
 
 const router = express.Router();
 
+router.get('/summary', analyticsController.getSummary);
 router.get('/revenue', requireQueryFields(['start_date', 'end_date']), analyticsController.getRevenue);
 router.get('/peak-hours', requireQueryFields(['start_date', 'end_date']), analyticsController.getPeakHours);
 router.get('/utilization', requireQueryFields(['start_date', 'end_date']), analyticsController.getUtilization);
+router.get('/utilization-by-court', analyticsController.getUtilizationByCourt);
 router.get('/top-users', requireQueryFields(['start_date', 'end_date']), analyticsController.getTopUsers);
 
 module.exports = router;

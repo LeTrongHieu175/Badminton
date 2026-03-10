@@ -14,6 +14,8 @@ import BookingTable from '../../components/BookingTable';
 import ChartCard from '../../components/ChartCard';
 import StatCard from '../../components/StatCard';
 import { useAdminDashboard } from '../../hooks/useAdminDashboard';
+import { formatCurrencyFromCents, formatNumberVi } from '../../utils/formatters';
+import { getApiErrorMessage } from '../../utils/errors';
 
 function heatColor(demand) {
   if (demand > 70) return '#0f766e';
@@ -24,10 +26,18 @@ function heatColor(demand) {
 }
 
 function AdminDashboard() {
-  const { data, isLoading } = useAdminDashboard();
+  const { data, isLoading, isError, error } = useAdminDashboard();
 
-  if (isLoading || !data) {
-    return <p className='text-sm text-slate-500'>Loading dashboard data...</p>;
+  if (isLoading) {
+    return <p className='text-sm text-slate-500'>Đang tải dữ liệu bảng điều khiển...</p>;
+  }
+
+  if (isError || !data) {
+    return (
+      <div className='rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+        {getApiErrorMessage(error, 'Không tải được dữ liệu dashboard quản trị.')}
+      </div>
+    );
   }
 
   const { stats, revenue, utilization, peakHours, recentBookings } = data;
@@ -35,37 +45,36 @@ function AdminDashboard() {
   return (
     <div className='space-y-6'>
       <section className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
-        <StatCard label='Revenue (YTD)' value={`$${stats.totalRevenue.toLocaleString()}`} delta='+12% vs last quarter' tone='info' />
-        <StatCard label='Bookings' value={stats.totalBookings.toLocaleString()} delta='Including locked and confirmed' />
-        <StatCard label='Active Users' value={stats.activeUsers.toLocaleString()} delta='Monthly active users' tone='success' />
+        <StatCard label='Tổng doanh thu' value={formatCurrencyFromCents(stats.totalRevenueCents)} tone='info' />
+        <StatCard label='Tổng lượt đặt sân' value={formatNumberVi(stats.totalBookings)} />
+        <StatCard label='Người dùng hoạt động' value={formatNumberVi(stats.activeUsers)} tone='success' />
         <StatCard
-          label='Avg Utilization'
-          value={`${Number(stats.avgUtilization).toFixed(1)}%`}
-          delta='Across all courts'
+          label='Tỷ lệ sử dụng trung bình'
+          value={`${Number(stats.avgUtilizationPercent || 0).toFixed(1)}%`}
           tone='warning'
         />
       </section>
 
       <section className='grid gap-4 xl:grid-cols-2'>
-        <ChartCard title='Revenue Over Time' subtitle='Monthly revenue trend'>
+        <ChartCard title='Doanh thu theo ngày' subtitle='Dữ liệu thực từ hệ thống'>
           <ResponsiveContainer width='100%' height='100%'>
             <LineChart data={revenue}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
               <XAxis dataKey='period' tick={{ fontSize: 12 }} stroke='#94a3b8' />
               <YAxis tick={{ fontSize: 12 }} stroke='#94a3b8' />
-              <Tooltip />
-              <Line type='monotone' dataKey='revenue' stroke='#0d9488' strokeWidth={3} dot={false} />
+              <Tooltip formatter={(value) => formatCurrencyFromCents(value)} labelFormatter={(label) => `Ngày: ${label}`} />
+              <Line type='monotone' dataKey='revenueCents' stroke='#0d9488' strokeWidth={3} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title='Court Utilization Rate' subtitle='Usage percentage by court'>
+        <ChartCard title='Tỷ lệ sử dụng theo sân' subtitle='So sánh hiệu suất từng sân'>
           <ResponsiveContainer width='100%' height='100%'>
             <BarChart data={utilization}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
               <XAxis dataKey='court' tick={{ fontSize: 12 }} stroke='#94a3b8' />
               <YAxis tick={{ fontSize: 12 }} stroke='#94a3b8' />
-              <Tooltip />
+              <Tooltip formatter={(value) => `${value}%`} />
               <Bar dataKey='usage' radius={[8, 8, 0, 0]} fill='#14b8a6' />
             </BarChart>
           </ResponsiveContainer>
@@ -73,13 +82,13 @@ function AdminDashboard() {
       </section>
 
       <section>
-        <ChartCard title='Peak Hour Heatmap' subtitle='Demand intensity by hour of day'>
+        <ChartCard title='Nhu cầu theo khung giờ' subtitle='Phát hiện giờ cao điểm theo dữ liệu đặt sân'>
           <ResponsiveContainer width='100%' height='100%'>
             <BarChart data={peakHours}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
               <XAxis dataKey='hour' tick={{ fontSize: 11 }} stroke='#94a3b8' />
               <YAxis tick={{ fontSize: 12 }} stroke='#94a3b8' />
-              <Tooltip />
+              <Tooltip formatter={(value) => `${value} lượt`} />
               <Bar dataKey='demand' radius={[6, 6, 0, 0]}>
                 {peakHours.map((entry) => (
                   <Cell key={entry.hour} fill={heatColor(entry.demand)} />
@@ -91,10 +100,10 @@ function AdminDashboard() {
       </section>
 
       <section className='surface-card p-5'>
-        <h2 className='text-base font-semibold text-slate-900'>Recent Bookings</h2>
-        <p className='mt-1 text-xs text-slate-500'>Latest customer activity and booking states.</p>
+        <h2 className='text-base font-semibold text-slate-900'>Đơn đặt sân gần đây</h2>
+        <p className='mt-1 text-xs text-slate-500'>Danh sách cập nhật từ toàn bộ hệ thống.</p>
         <div className='mt-4'>
-          <BookingTable rows={recentBookings} />
+          <BookingTable rows={recentBookings} emptyMessage='Chưa có dữ liệu đặt sân.' />
         </div>
       </section>
     </div>

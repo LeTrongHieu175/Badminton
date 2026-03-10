@@ -1,22 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  getDashboardStats,
+  getDashboardSummary,
   getPeakHoursSeries,
-  getRecentBookings,
   getRevenueSeries,
-  getUtilizationSeries
+  getUtilizationByCourt
 } from '../services/analyticsService';
+import { getAllBookings } from '../services/bookingService';
 
 export function useAdminDashboard() {
   return useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: async () => {
-      const [stats, revenue, utilization, peakHours, recentBookings] = await Promise.all([
-        getDashboardStats(),
+      const [stats, revenue, utilization, peakHours, recentBookingPayload] = await Promise.all([
+        getDashboardSummary(),
         getRevenueSeries(),
-        getUtilizationSeries(),
+        getUtilizationByCourt(),
         getPeakHoursSeries(),
-        getRecentBookings()
+        getAllBookings({ page: 1, limit: 10 })
       ]);
 
       return {
@@ -24,7 +24,7 @@ export function useAdminDashboard() {
         revenue,
         utilization,
         peakHours,
-        recentBookings
+        recentBookings: recentBookingPayload.items
       };
     }
   });

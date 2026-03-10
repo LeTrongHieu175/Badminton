@@ -6,6 +6,19 @@ const createBooking = asyncHandler(async (req, res) => {
   return sendSuccess(res, booking, 'Booking locked successfully', 201);
 });
 
+const getAllBookings = asyncHandler(async (req, res) => {
+  const result = await bookingService.getAllBookings(req.user, {
+    userId: req.query.userId,
+    status: req.query.status,
+    dateFrom: req.query.dateFrom,
+    dateTo: req.query.dateTo,
+    page: req.query.page,
+    limit: req.query.limit
+  });
+
+  return sendSuccess(res, result);
+});
+
 const getUserBookings = asyncHandler(async (req, res) => {
   const result = await bookingService.getUserBookings(req.user, req.params.id, {
     page: req.query.page,
@@ -22,6 +35,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
 
 module.exports = {
   createBooking,
+  getAllBookings,
   getUserBookings,
   cancelBooking
 };

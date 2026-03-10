@@ -52,9 +52,31 @@ async function getTopUsers({ startDate, endDate, limit = 10 }) {
   return analyticsRepository.getTopUsersBySpend(startDate, endDate, safeLimit);
 }
 
+async function getSummary() {
+  const summary = await analyticsRepository.getAnalyticsSummary();
+  const confirmedBookings = Number(summary.confirmed_bookings || 0);
+  const slotsPerDay = Number(summary.slots_per_day || 0);
+  const bookingDays = Math.max(Number(summary.booking_days || 0), 1);
+  const totalAvailableSlots = slotsPerDay * bookingDays;
+  const utilizationRate = totalAvailableSlots > 0 ? confirmedBookings / totalAvailableSlots : 0;
+
+  return {
+    totalRevenueCents: Number(summary.total_revenue_cents || 0),
+    totalBookings: Number(summary.total_bookings || 0),
+    activeUsers: Number(summary.active_users || 0),
+    avgUtilizationPercent: Number((utilizationRate * 100).toFixed(2))
+  };
+}
+
+async function getUtilizationByCourt() {
+  return analyticsRepository.getUtilizationByCourt();
+}
+
 module.exports = {
   getRevenue,
   getPeakHours,
   getUtilization,
-  getTopUsers
+  getTopUsers,
+  getSummary,
+  getUtilizationByCourt
 };

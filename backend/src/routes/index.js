@@ -9,6 +9,7 @@ const bookingRoutes = require('./booking.routes');
 const paymentRoutes = require('./payment.routes');
 const analyticsRoutes = require('./analytics.routes');
 const userRoutes = require('./user.routes');
+const recommendationRoutes = require('./recommendation.routes');
 
 const router = express.Router();
 
@@ -18,5 +19,6 @@ router.use('/bookings', authMiddleware, bookingRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/analytics', authMiddleware, roleMiddleware(Role.ADMIN), analyticsRoutes);
 router.use('/users', authMiddleware, roleMiddleware(Role.ADMIN), userRoutes);
+router.use('/recommendations', authMiddleware, recommendationRoutes);
 
 module.exports = router;
