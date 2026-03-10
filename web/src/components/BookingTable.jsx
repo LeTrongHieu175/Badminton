@@ -11,7 +11,12 @@ function formatStatusBadge(status) {
   return map[status] || 'bg-slate-100 text-slate-700';
 }
 
-function BookingTable({ rows, showUser = true, emptyMessage = 'Chưa có dữ liệu đặt sân.' }) {
+function BookingTable({
+  rows,
+  showUser = true,
+  emptyMessage = 'Chưa có dữ liệu đặt sân.',
+  renderActions = null
+}) {
   if (!Array.isArray(rows) || rows.length === 0) {
     return (
       <div className='rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500'>
@@ -32,6 +37,7 @@ function BookingTable({ rows, showUser = true, emptyMessage = 'Chưa có dữ li
               {showUser ? <th className='px-4 py-3'>Người đặt</th> : null}
               <th className='px-4 py-3'>Trạng thái</th>
               <th className='px-4 py-3'>Số tiền</th>
+              {renderActions ? <th className='px-4 py-3'>Thao tác</th> : null}
             </tr>
           </thead>
           <tbody className='divide-y divide-slate-100 bg-white'>
@@ -47,6 +53,7 @@ function BookingTable({ rows, showUser = true, emptyMessage = 'Chưa có dữ li
                   </span>
                 </td>
                 <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{formatCurrencyFromCents(row.amountCents)}</td>
+                {renderActions ? <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{renderActions(row)}</td> : null}
               </tr>
             ))}
           </tbody>

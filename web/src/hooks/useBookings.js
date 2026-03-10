@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   cancelBooking,
+  completeBooking,
   createBooking,
   getAllBookings,
   getUserBookings
@@ -43,6 +44,19 @@ export function useCancelBooking() {
     mutationFn: cancelBooking,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+    }
+  });
+}
+
+export function useCompleteBooking() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: completeBooking,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
     }
   });
 }

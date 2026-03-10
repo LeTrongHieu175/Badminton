@@ -33,9 +33,15 @@ const cancelBooking = asyncHandler(async (req, res) => {
   return sendSuccess(res, booking, 'Booking cancelled successfully');
 });
 
+const completeBooking = asyncHandler(async (req, res) => {
+  const booking = await bookingService.completeBooking(req.user, req.params.id);
+  return sendSuccess(res, booking, 'Booking completed successfully');
+});
+
 module.exports = {
   createBooking,
   getAllBookings,
   getUserBookings,
-  cancelBooking
+  cancelBooking,
+  completeBooking
 };

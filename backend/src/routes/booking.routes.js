@@ -9,6 +9,7 @@ const router = express.Router();
 router.post('/', requireBodyFields(['courtId', 'slotId', 'date']), bookingController.createBooking);
 router.get('/', roleMiddleware(Role.ADMIN), bookingController.getAllBookings);
 router.get('/user/:id', bookingController.getUserBookings);
+router.patch('/:id/complete', roleMiddleware(Role.ADMIN), bookingController.completeBooking);
 router.delete('/:id', bookingController.cancelBooking);
 
 module.exports = router;

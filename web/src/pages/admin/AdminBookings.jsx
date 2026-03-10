@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import BookingTable from '../../components/BookingTable';
-import { useAdminBookings } from '../../hooks/useBookings';
+import { useAdminBookings, useCancelBooking, useCompleteBooking } from '../../hooks/useBookings';
 import { getApiErrorMessage } from '../../utils/errors';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
   { value: 'LOCKED', label: 'Đã khóa' },
   { value: 'CONFIRMED', label: 'Đã xác nhận' },
+  { value: 'COMPLETED', label: 'Hoàn thành' },
   { value: 'CANCELLED', label: 'Đã hủy' }
 ];
 
@@ -33,8 +34,12 @@ function AdminBookings() {
   );
 
   const { data, isLoading, isError, error } = useAdminBookings(queryFilters);
+  const completeMutation = useCompleteBooking();
+  const cancelMutation = useCancelBooking();
 
   const bookings = data?.items || [];
+  const activeBookings = bookings.filter((item) => item.status === 'LOCKED' || item.status === 'CONFIRMED');
+  const historyBookings = bookings.filter((item) => item.status === 'COMPLETED' || item.status === 'CANCELLED');
   const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0, limit: 20 };
 
   const handleFilterChange = (key, value) => {
@@ -51,6 +56,8 @@ function AdminBookings() {
       page: nextPage
     }));
   };
+
+  const mutationError = completeMutation.error || cancelMutation.error;
 
   return (
     <div className='space-y-4'>
@@ -114,9 +121,50 @@ function AdminBookings() {
         </div>
       ) : null}
 
+      {mutationError ? (
+        <div className='rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
+          {getApiErrorMessage(mutationError, 'Cập nhật trạng thái đơn thất bại.')}
+        </div>
+      ) : null}
+
       {!isLoading && !isError ? (
         <section className='surface-card p-5'>
-          <BookingTable rows={bookings} emptyMessage='Không có đơn đặt sân phù hợp.' />
+          <h3 className='text-base font-semibold text-slate-900'>Đơn đang đặt</h3>
+          <p className='mt-1 text-xs text-slate-500'>Đơn ở trạng thái Đã khóa/Đã xác nhận.</p>
+
+          <div className='mt-3'>
+            <BookingTable
+              rows={activeBookings}
+              emptyMessage='Không có đơn đang đặt phù hợp bộ lọc.'
+              renderActions={(row) => (
+                <div className='flex gap-2'>
+                  <button
+                    type='button'
+                    onClick={() => completeMutation.mutate(row.id)}
+                    disabled={completeMutation.isPending || cancelMutation.isPending}
+                    className='rounded-lg border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60'
+                  >
+                    Hoàn thành
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => cancelMutation.mutate(row.id)}
+                    disabled={completeMutation.isPending || cancelMutation.isPending}
+                    className='rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60'
+                  >
+                    Hủy
+                  </button>
+                </div>
+              )}
+            />
+          </div>
+
+          <h3 className='mt-6 text-base font-semibold text-slate-900'>Lịch sử đơn</h3>
+          <p className='mt-1 text-xs text-slate-500'>Đơn đã hoàn thành hoặc đã hủy.</p>
+
+          <div className='mt-3'>
+            <BookingTable rows={historyBookings} emptyMessage='Chưa có lịch sử đơn theo bộ lọc.' />
+          </div>
 
           <div className='mt-4 flex items-center justify-between text-sm text-slate-600'>
             <p>

@@ -7,7 +7,7 @@ async function getRevenueSummary(startDate, endDate) {
       FROM payments p
       JOIN bookings b ON b.id = p.booking_id
       WHERE p.status = 'succeeded'
-        AND b.status = 'CONFIRMED'
+        AND b.status IN ('CONFIRMED', 'COMPLETED')
         AND b.booking_date BETWEEN $1 AND $2
     `,
     [startDate, endDate]
@@ -21,7 +21,7 @@ async function getRevenueSummary(startDate, endDate) {
       FROM bookings b
       JOIN payments p ON p.booking_id = b.id
       WHERE p.status = 'succeeded'
-        AND b.status = 'CONFIRMED'
+        AND b.status IN ('CONFIRMED', 'COMPLETED')
         AND b.booking_date BETWEEN $1 AND $2
       GROUP BY b.booking_date
       ORDER BY b.booking_date ASC
@@ -47,7 +47,7 @@ async function getPeakHours(startDate, endDate) {
       FROM bookings b
       JOIN court_slots s ON s.id = b.slot_id
       JOIN payments p ON p.booking_id = b.id
-      WHERE b.status = 'CONFIRMED'
+      WHERE b.status IN ('CONFIRMED', 'COMPLETED')
         AND p.status = 'succeeded'
         AND b.booking_date BETWEEN $1 AND $2
       GROUP BY hour
@@ -67,7 +67,7 @@ async function getConfirmedBookingCount(startDate, endDate) {
     `
       SELECT COUNT(*)::INT AS confirmed_count
       FROM bookings
-      WHERE status = 'CONFIRMED'
+      WHERE status IN ('CONFIRMED', 'COMPLETED')
         AND booking_date BETWEEN $1 AND $2
     `,
     [startDate, endDate]
@@ -102,7 +102,7 @@ async function getTopUsersBySpend(startDate, endDate, limit) {
       FROM users u
       JOIN bookings b ON b.user_id = u.id
       JOIN payments p ON p.booking_id = b.id
-      WHERE b.status = 'CONFIRMED'
+      WHERE b.status IN ('CONFIRMED', 'COMPLETED')
         AND p.status = 'succeeded'
         AND b.booking_date BETWEEN $1 AND $2
       GROUP BY u.id, u.full_name, u.email
@@ -129,7 +129,7 @@ async function getAnalyticsSummary() {
           COALESCE(MIN(booking_date), CURRENT_DATE) AS min_date,
           COALESCE(MAX(booking_date), CURRENT_DATE) AS max_date
         FROM bookings
-        WHERE status = 'CONFIRMED'
+        WHERE status IN ('CONFIRMED', 'COMPLETED')
       ),
       slots_per_day AS (
         SELECT COUNT(*)::INT AS count
@@ -142,7 +142,7 @@ async function getAnalyticsSummary() {
           SELECT COALESCE(SUM(p.amount_cents), 0)::BIGINT
           FROM payments p
           JOIN bookings b ON b.id = p.booking_id
-          WHERE p.status = 'succeeded' AND b.status = 'CONFIRMED'
+          WHERE p.status = 'succeeded' AND b.status IN ('CONFIRMED', 'COMPLETED')
         ) AS total_revenue_cents,
         (
           SELECT COUNT(*)::INT
@@ -156,7 +156,7 @@ async function getAnalyticsSummary() {
         (
           SELECT COUNT(*)::INT
           FROM bookings
-          WHERE status = 'CONFIRMED'
+          WHERE status IN ('CONFIRMED', 'COMPLETED')
         ) AS confirmed_bookings,
         (
           SELECT count FROM slots_per_day
@@ -190,7 +190,7 @@ async function getUtilizationByCourt() {
       LEFT JOIN (
         SELECT b.court_id, COUNT(*)::INT AS confirmed_slots
         FROM bookings b
-        WHERE b.status = 'CONFIRMED'
+        WHERE b.status IN ('CONFIRMED', 'COMPLETED')
         GROUP BY b.court_id
       ) confirmed ON confirmed.court_id = c.id
       LEFT JOIN (

@@ -42,6 +42,27 @@ async function runMigrations() {
     WHERE phone IS NOT NULL AND BTRIM(phone) <> ''
   `);
 
+  await query(`
+    ALTER TABLE bookings
+    DROP CONSTRAINT IF EXISTS bookings_status_check
+  `);
+
+  await query(`
+    ALTER TABLE bookings
+    ADD CONSTRAINT bookings_status_check
+    CHECK (status IN ('LOCKED', 'CONFIRMED', 'COMPLETED', 'CANCELLED'))
+  `);
+
+  await query(`
+    DROP INDEX IF EXISTS uq_bookings_active_slot
+  `);
+
+  await query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_bookings_active_slot
+    ON bookings (court_id, slot_id, booking_date)
+    WHERE status IN ('LOCKED', 'CONFIRMED')
+  `);
+
   await query(
     `
       UPDATE users

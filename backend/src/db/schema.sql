@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   court_id BIGINT NOT NULL REFERENCES courts(id) ON DELETE CASCADE,
   slot_id BIGINT NOT NULL REFERENCES court_slots(id) ON DELETE CASCADE,
   booking_date DATE NOT NULL,
-  status VARCHAR(16) NOT NULL CHECK (status IN ('LOCKED', 'CONFIRMED', 'CANCELLED')),
+  status VARCHAR(16) NOT NULL CHECK (status IN ('LOCKED', 'CONFIRMED', 'COMPLETED', 'CANCELLED')),
   amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
   currency CHAR(3) NOT NULL DEFAULT 'USD',
   lock_key TEXT,

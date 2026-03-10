@@ -32,7 +32,7 @@ async function findActiveBookingForSlot(client, { courtId, slotId, bookingDate, 
       AND slot_id = $2
       AND booking_date = $3
       AND (
-        status = 'CONFIRMED'
+        status IN ('CONFIRMED')
         OR (status = 'LOCKED' AND lock_expires_at > NOW())
       )
     ORDER BY created_at DESC
@@ -363,6 +363,39 @@ async function markBookingConfirmed(client, bookingId) {
   return result.rows[0] || null;
 }
 
+async function markBookingCompleted(client, bookingId) {
+  const result = await dbClient(client).query(
+    `
+      UPDATE bookings
+      SET status = 'COMPLETED',
+          confirmed_at = COALESCE(confirmed_at, NOW()),
+          lock_expires_at = NULL,
+          payment_due_at = NULL,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING
+        id,
+        user_id,
+        court_id,
+        slot_id,
+        booking_date,
+        status,
+        amount_cents,
+        currency,
+        lock_key,
+        lock_token,
+        lock_expires_at,
+        confirmed_at,
+        cancelled_at,
+        created_at,
+        updated_at
+    `,
+    [bookingId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function cancelExpiredLockedBookings(client, limit = 100) {
   const result = await dbClient(client).query(
     `
@@ -411,5 +444,6 @@ module.exports = {
   countAllBookings,
   cancelBooking,
   markBookingConfirmed,
+  markBookingCompleted,
   cancelExpiredLockedBookings
 };

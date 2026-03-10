@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { withTransaction } = require('../config/db');
 const { env } = require('../config/env');
 const BookingStatus = require('../models/booking-status');
@@ -7,6 +8,7 @@ const { assertISODate, addSeconds } = require('../utils/date-time');
 const courtRepository = require('../repositories/court.repository');
 const slotRepository = require('../repositories/slot.repository');
 const bookingRepository = require('../repositories/booking.repository');
+const paymentRepository = require('../repositories/payment.repository');
 const lockService = require('./lock.service');
 const { emitSlotUpdated } = require('../sockets/booking.socket');
 
@@ -117,11 +119,16 @@ async function createBooking(currentUser, { courtId, slotId, date }) {
 
 async function getUserBookings(currentUser, targetUserId, { page = 1, limit = 20 }) {
   const requestedUserId = Number(targetUserId);
+  const normalizedCurrentUserId = Number(currentUser.id);
   if (!Number.isInteger(requestedUserId)) {
     throw new ApiError(400, 'user id must be an integer', 'VALIDATION_ERROR');
   }
 
-  if (currentUser.role !== Role.ADMIN && currentUser.id !== requestedUserId) {
+  if (!Number.isInteger(normalizedCurrentUserId)) {
+    throw new ApiError(401, 'Invalid user context', 'UNAUTHORIZED');
+  }
+
+  if (currentUser.role !== Role.ADMIN && normalizedCurrentUserId !== requestedUserId) {
     throw new ApiError(403, 'Cannot access bookings of another user', 'FORBIDDEN');
   }
 
@@ -186,9 +193,14 @@ async function getAllBookings(currentUser, { userId, status, dateFrom, dateTo, p
   let normalizedStatus;
   if (status !== undefined && status !== null && String(status).trim() !== '') {
     normalizedStatus = String(status).trim().toUpperCase();
-    const allowedStatuses = [BookingStatus.LOCKED, BookingStatus.CONFIRMED, BookingStatus.CANCELLED];
+    const allowedStatuses = [
+      BookingStatus.LOCKED,
+      BookingStatus.CONFIRMED,
+      BookingStatus.COMPLETED,
+      BookingStatus.CANCELLED
+    ];
     if (!allowedStatuses.includes(normalizedStatus)) {
-      throw new ApiError(400, 'status must be LOCKED, CONFIRMED, or CANCELLED', 'VALIDATION_ERROR');
+      throw new ApiError(400, 'status must be LOCKED, CONFIRMED, COMPLETED, or CANCELLED', 'VALIDATION_ERROR');
     }
   }
 
@@ -256,8 +268,13 @@ async function getAllBookings(currentUser, { userId, status, dateFrom, dateTo, p
 
 async function cancelBooking(currentUser, bookingId) {
   const parsedBookingId = Number(bookingId);
+  const normalizedCurrentUserId = Number(currentUser.id);
   if (!Number.isInteger(parsedBookingId)) {
     throw new ApiError(400, 'booking id must be an integer', 'VALIDATION_ERROR');
+  }
+
+  if (!Number.isInteger(normalizedCurrentUserId)) {
+    throw new ApiError(401, 'Invalid user context', 'UNAUTHORIZED');
   }
 
   let cancelledBooking;
@@ -270,12 +287,16 @@ async function cancelBooking(currentUser, bookingId) {
       throw new ApiError(404, 'Booking not found', 'BOOKING_NOT_FOUND');
     }
 
-    if (currentUser.role !== Role.ADMIN && booking.user_id !== currentUser.id) {
+    if (currentUser.role !== Role.ADMIN && Number(booking.user_id) !== normalizedCurrentUserId) {
       throw new ApiError(403, 'Cannot cancel another user booking', 'FORBIDDEN');
     }
 
     if (booking.status === BookingStatus.CANCELLED) {
       throw new ApiError(409, 'Booking is already cancelled', 'BOOKING_ALREADY_CANCELLED');
+    }
+
+    if (booking.status === BookingStatus.COMPLETED) {
+      throw new ApiError(409, 'Completed booking cannot be cancelled', 'BOOKING_ALREADY_COMPLETED');
     }
 
     cancelledBooking = await bookingRepository.cancelBooking(client, parsedBookingId);
@@ -291,10 +312,63 @@ async function cancelBooking(currentUser, bookingId) {
   return toBookingResponse(cancelledBooking);
 }
 
+async function completeBooking(currentUser, bookingId) {
+  const parsedBookingId = Number(bookingId);
+  if (!Number.isInteger(parsedBookingId)) {
+    throw new ApiError(400, 'booking id must be an integer', 'VALIDATION_ERROR');
+  }
+
+  if (currentUser.role !== Role.ADMIN) {
+    throw new ApiError(403, 'Admin permission required', 'FORBIDDEN');
+  }
+
+  let completedBooking;
+  let lockKey;
+  let lockToken;
+
+  await withTransaction(async (client) => {
+    const booking = await bookingRepository.findBookingByIdForUpdate(client, parsedBookingId);
+    if (!booking) {
+      throw new ApiError(404, 'Booking not found', 'BOOKING_NOT_FOUND');
+    }
+
+    if (booking.status === BookingStatus.CANCELLED) {
+      throw new ApiError(409, 'Cancelled booking cannot be completed', 'BOOKING_ALREADY_CANCELLED');
+    }
+
+    if (booking.status === BookingStatus.COMPLETED) {
+      throw new ApiError(409, 'Booking is already completed', 'BOOKING_ALREADY_COMPLETED');
+    }
+
+    completedBooking = await bookingRepository.markBookingCompleted(client, parsedBookingId);
+    lockKey = completedBooking.lock_key;
+    lockToken = completedBooking.lock_token;
+
+    const providerIntentId = `manual_${crypto.randomUUID().replace(/-/g, '')}`;
+    await paymentRepository.upsertPaymentIntent(client, {
+      bookingId: parsedBookingId,
+      provider: 'manual_admin',
+      providerIntentId,
+      clientSecret: null,
+      status: 'succeeded',
+      amountCents: Number(booking.amount_cents),
+      currency: booking.currency
+    });
+  });
+
+  if (lockKey && lockToken) {
+    await lockService.releaseLock(lockKey, lockToken);
+  }
+
+  emitSlotUpdated(toSlotUpdatedPayload(completedBooking));
+  return toBookingResponse(completedBooking);
+}
+
 module.exports = {
   createBooking,
   getUserBookings,
   getAllBookings,
   cancelBooking,
+  completeBooking,
   toSlotUpdatedPayload
 };

@@ -88,3 +88,8 @@ export async function cancelBooking(bookingId) {
   const response = await api.delete(`/bookings/${bookingId}`);
   return normalizeBooking(unwrapPayload(response));
 }
+
+export async function completeBooking(bookingId) {
+  const response = await api.patch(`/bookings/${bookingId}/complete`);
+  return normalizeBooking(unwrapPayload(response));
+}

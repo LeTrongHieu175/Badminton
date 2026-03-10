@@ -27,8 +27,13 @@ async function authMiddleware(req, _res, next) {
       return next(new ApiError(403, 'User account is deactivated', 'USER_DEACTIVATED'));
     }
 
+    const normalizedUserId = Number(user.id);
+    if (!Number.isInteger(normalizedUserId)) {
+      return next(new ApiError(401, 'Invalid user id in token context', 'UNAUTHORIZED'));
+    }
+
     req.user = {
-      id: user.id,
+      id: normalizedUserId,
       email: user.email,
       role: user.role
     };
