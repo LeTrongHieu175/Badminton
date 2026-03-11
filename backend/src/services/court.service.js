@@ -1,5 +1,5 @@
 const ApiError = require('../utils/api-error');
-const { assertISODate } = require('../utils/date-time');
+const { assertISODate, formatTimeHHmm } = require('../utils/date-time');
 const Role = require('../models/role');
 const courtRepository = require('../repositories/court.repository');
 const slotRepository = require('../repositories/slot.repository');
@@ -20,9 +20,9 @@ function toSlotView(slot) {
     id: Number(slot.id),
     courtId: Number(slot.court_id),
     label: slot.label,
-    startTime: slot.start_time,
-    endTime: slot.end_time,
-    priceCents: Number(slot.price_cents),
+    startTime: formatTimeHHmm(slot.start_time),
+    endTime: formatTimeHHmm(slot.end_time),
+    priceVnd: Number(slot.price_vnd),
     isActive: Boolean(slot.is_active),
     createdAt: slot.created_at
   };
@@ -90,13 +90,13 @@ function validateTimeString(value, fieldName) {
   return time;
 }
 
-function parsePriceCents(value) {
-  const priceCents = Number(value);
-  if (!Number.isInteger(priceCents) || priceCents <= 0) {
-    throw new ApiError(400, 'priceCents must be a positive integer', 'VALIDATION_ERROR');
+function parsePriceVnd(value) {
+  const priceVnd = Number(value);
+  if (!Number.isInteger(priceVnd) || priceVnd <= 0) {
+    throw new ApiError(400, 'priceVnd must be a positive integer', 'VALIDATION_ERROR');
   }
 
-  return priceCents;
+  return priceVnd;
 }
 
 function checkTimeRange(startTime, endTime) {
@@ -159,9 +159,9 @@ async function getCourtAvailability(courtId, date) {
     slots: slots.map((slot) => ({
       slotId: Number(slot.slot_id),
       label: slot.label,
-      startTime: slot.start_time,
-      endTime: slot.end_time,
-      priceCents: Number(slot.price_cents),
+      startTime: formatTimeHHmm(slot.start_time),
+      endTime: formatTimeHHmm(slot.end_time),
+      priceVnd: Number(slot.price_vnd),
       status: slot.status,
       bookingId: slot.booking_id ? Number(slot.booking_id) : null,
       lockExpiresAt: slot.lock_expires_at
@@ -237,7 +237,7 @@ async function createCourtSlot(courtId, payload) {
       label: normalizeOptionalString(payload.label),
       startTime,
       endTime,
-      priceCents: parsePriceCents(payload.priceCents)
+      priceVnd: parsePriceVnd(payload.priceVnd)
     });
 
     return toSlotView(slot);
@@ -277,11 +277,14 @@ async function updateCourtSlot(courtId, slotId, payload) {
   }
 
   if (updates.startTime || updates.endTime) {
-    checkTimeRange(updates.startTime || existingSlot.start_time, updates.endTime || existingSlot.end_time);
+    checkTimeRange(
+      updates.startTime || formatTimeHHmm(existingSlot.start_time),
+      updates.endTime || formatTimeHHmm(existingSlot.end_time)
+    );
   }
 
-  if (payload.priceCents !== undefined) {
-    updates.priceCents = parsePriceCents(payload.priceCents);
+  if (payload.priceVnd !== undefined) {
+    updates.priceVnd = parsePriceVnd(payload.priceVnd);
   }
 
   if (payload.isActive !== undefined) {

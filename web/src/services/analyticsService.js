@@ -14,7 +14,7 @@ export async function getDashboardSummary() {
   const payload = unwrapPayload(response);
 
   return {
-    totalRevenueCents: Number(payload.totalRevenueCents || 0),
+    totalRevenueVnd: Number(payload.totalRevenueVnd || 0),
     totalBookings: Number(payload.totalBookings || 0),
     activeUsers: Number(payload.activeUsers || 0),
     avgUtilizationPercent: Number(payload.avgUtilizationPercent || 0)
@@ -39,7 +39,7 @@ export async function getRevenueSeries({ startDate, endDate } = {}) {
   return Array.isArray(payload?.dailySeries)
     ? payload.dailySeries.map((item) => ({
         period: item.date,
-        revenueCents: Number(item.revenueCents || 0)
+        revenueVnd: Number(item.revenueVnd || 0)
       }))
     : [];
 }

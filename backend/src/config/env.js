@@ -21,13 +21,20 @@ const env = {
   JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-change-me',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
 
-  BOOKING_LOCK_TTL_SECONDS: toInt(process.env.BOOKING_LOCK_TTL_SECONDS, 300),
+  BOOKING_LOCK_TTL_SECONDS: toInt(process.env.BOOKING_LOCK_TTL_SECONDS, 600),
   BOOKING_SWEEP_INTERVAL_MS: toInt(process.env.BOOKING_SWEEP_INTERVAL_MS, 30000),
 
-  PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER || 'stripe_mock',
-  PAYMENT_WEBHOOK_SECRET: process.env.PAYMENT_WEBHOOK_SECRET || 'whsec_dev_change_me',
+  PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER || 'sepay',
   PAYMENT_WEBHOOK_TOLERANCE_SECONDS: toInt(process.env.PAYMENT_WEBHOOK_TOLERANCE_SECONDS, 300),
-  DEFAULT_CURRENCY: (process.env.DEFAULT_CURRENCY || 'USD').toUpperCase(),
+  DEFAULT_CURRENCY: (process.env.DEFAULT_CURRENCY || 'VND').toUpperCase(),
+  SEPAY_API_KEY: process.env.SEPAY_API_KEY || '',
+  SEPAY_IPN_SECRET: process.env.SEPAY_IPN_SECRET || '',
+  SEPAY_MERCHANT_CODE: process.env.SEPAY_MERCHANT_CODE || '',
+  SEPAY_BANK_CODE: process.env.SEPAY_BANK_CODE || 'MB',
+  SEPAY_TRANSFER_PREFIX: process.env.SEPAY_TRANSFER_PREFIX || 'BOOKING',
+  BANK_NAME: process.env.BANK_NAME || 'MB Bank',
+  BANK_ACCOUNT_NO: process.env.BANK_ACCOUNT_NO || '55463688',
+  BANK_ACCOUNT_NAME: process.env.BANK_ACCOUNT_NAME || 'LE TRONG HIEU',
 
   AI_SERVICE_BASE_URL: process.env.AI_SERVICE_BASE_URL || 'http://localhost:8001'
 };

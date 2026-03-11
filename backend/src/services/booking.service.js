@@ -4,13 +4,16 @@ const { env } = require('../config/env');
 const BookingStatus = require('../models/booking-status');
 const Role = require('../models/role');
 const ApiError = require('../utils/api-error');
-const { assertISODate, addSeconds } = require('../utils/date-time');
+const { assertISODate, addSeconds, formatTimeHHmm, combineDateAndTime } = require('../utils/date-time');
 const courtRepository = require('../repositories/court.repository');
 const slotRepository = require('../repositories/slot.repository');
 const bookingRepository = require('../repositories/booking.repository');
 const paymentRepository = require('../repositories/payment.repository');
 const lockService = require('./lock.service');
 const { emitSlotUpdated } = require('../sockets/booking.socket');
+
+const REFUND_RATE = 0.7;
+const REFUND_CUTOFF_HOURS = 5;
 
 function toSlotUpdatedPayload(bookingRow) {
   return {
@@ -32,14 +35,34 @@ function toBookingResponse(bookingRow) {
     slotId: Number(bookingRow.slot_id),
     date: bookingRow.booking_date,
     status: bookingRow.status,
-    amountCents: Number(bookingRow.amount_cents),
+    amountVnd: Number(bookingRow.amount_vnd),
+    refundAmountVnd: bookingRow.refund_amount_vnd === null ? null : Number(bookingRow.refund_amount_vnd),
     currency: bookingRow.currency,
     lockExpiresAt: bookingRow.lock_expires_at,
     confirmedAt: bookingRow.confirmed_at,
     cancelledAt: bookingRow.cancelled_at,
+    refundedAt: bookingRow.refunded_at,
     createdAt: bookingRow.created_at,
     updatedAt: bookingRow.updated_at
   };
+}
+
+function requireBookingOwnerOrAdmin(currentUser, booking) {
+  const normalizedCurrentUserId = Number(currentUser.id);
+  if (!Number.isInteger(normalizedCurrentUserId)) {
+    throw new ApiError(401, 'Invalid user context', 'UNAUTHORIZED');
+  }
+
+  if (currentUser.role !== Role.ADMIN && Number(booking.user_id) !== normalizedCurrentUserId) {
+    throw new ApiError(403, 'Cannot access another user booking', 'FORBIDDEN');
+  }
+}
+
+function canRefundBooking(booking) {
+  const slotStart = combineDateAndTime(booking.booking_date, booking.start_time);
+  const now = new Date();
+  const diffMs = slotStart.getTime() - now.getTime();
+  return diffMs >= REFUND_CUTOFF_HOURS * 60 * 60 * 1000;
 }
 
 async function createBooking(currentUser, { courtId, slotId, date }) {
@@ -98,7 +121,7 @@ async function createBooking(currentUser, { courtId, slotId, date }) {
         courtId: normalizedCourtId,
         slotId: normalizedSlotId,
         bookingDate,
-        amountCents: slot.price_cents,
+        amountVnd: slot.price_vnd,
         currency: env.DEFAULT_CURRENCY,
         lockKey,
         lockToken,
@@ -151,15 +174,17 @@ async function getUserBookings(currentUser, targetUserId, { page = 1, limit = 20
       slotId: Number(row.slot_id),
       date: row.booking_date,
       status: row.status,
-      amountCents: Number(row.amount_cents),
+      amountVnd: Number(row.amount_vnd),
+      refundAmountVnd: row.refund_amount_vnd === null ? null : Number(row.refund_amount_vnd),
       currency: row.currency,
       lockExpiresAt: row.lock_expires_at,
       confirmedAt: row.confirmed_at,
       cancelledAt: row.cancelled_at,
+      refundedAt: row.refunded_at,
       courtName: row.court_name,
       slotLabel: row.slot_label,
-      startTime: row.start_time,
-      endTime: row.end_time,
+      startTime: formatTimeHHmm(row.start_time),
+      endTime: formatTimeHHmm(row.end_time),
       createdAt: row.created_at
     })),
     pagination: {
@@ -197,10 +222,11 @@ async function getAllBookings(currentUser, { userId, status, dateFrom, dateTo, p
       BookingStatus.LOCKED,
       BookingStatus.CONFIRMED,
       BookingStatus.COMPLETED,
-      BookingStatus.CANCELLED
+      BookingStatus.CANCELLED,
+      BookingStatus.REFUNDED
     ];
     if (!allowedStatuses.includes(normalizedStatus)) {
-      throw new ApiError(400, 'status must be LOCKED, CONFIRMED, COMPLETED, or CANCELLED', 'VALIDATION_ERROR');
+      throw new ApiError(400, 'status must be LOCKED, CONFIRMED, COMPLETED, CANCELLED, or REFUNDED', 'VALIDATION_ERROR');
     }
   }
 
@@ -245,15 +271,17 @@ async function getAllBookings(currentUser, { userId, status, dateFrom, dateTo, p
       slotId: Number(row.slot_id),
       date: row.booking_date,
       status: row.status,
-      amountCents: Number(row.amount_cents),
+      amountVnd: Number(row.amount_vnd),
+      refundAmountVnd: row.refund_amount_vnd === null ? null : Number(row.refund_amount_vnd),
       currency: row.currency,
       lockExpiresAt: row.lock_expires_at,
       confirmedAt: row.confirmed_at,
       cancelledAt: row.cancelled_at,
+      refundedAt: row.refunded_at,
       courtName: row.court_name,
       slotLabel: row.slot_label,
-      startTime: row.start_time,
-      endTime: row.end_time,
+      startTime: formatTimeHHmm(row.start_time),
+      endTime: formatTimeHHmm(row.end_time),
       createdAt: row.created_at,
       updatedAt: row.updated_at
     })),
@@ -268,16 +296,11 @@ async function getAllBookings(currentUser, { userId, status, dateFrom, dateTo, p
 
 async function cancelBooking(currentUser, bookingId) {
   const parsedBookingId = Number(bookingId);
-  const normalizedCurrentUserId = Number(currentUser.id);
   if (!Number.isInteger(parsedBookingId)) {
     throw new ApiError(400, 'booking id must be an integer', 'VALIDATION_ERROR');
   }
 
-  if (!Number.isInteger(normalizedCurrentUserId)) {
-    throw new ApiError(401, 'Invalid user context', 'UNAUTHORIZED');
-  }
-
-  let cancelledBooking;
+  let updatedBooking;
   let lockKey;
   let lockToken;
 
@@ -287,9 +310,7 @@ async function cancelBooking(currentUser, bookingId) {
       throw new ApiError(404, 'Booking not found', 'BOOKING_NOT_FOUND');
     }
 
-    if (currentUser.role !== Role.ADMIN && Number(booking.user_id) !== normalizedCurrentUserId) {
-      throw new ApiError(403, 'Cannot cancel another user booking', 'FORBIDDEN');
-    }
+    requireBookingOwnerOrAdmin(currentUser, booking);
 
     if (booking.status === BookingStatus.CANCELLED) {
       throw new ApiError(409, 'Booking is already cancelled', 'BOOKING_ALREADY_CANCELLED');
@@ -299,17 +320,45 @@ async function cancelBooking(currentUser, bookingId) {
       throw new ApiError(409, 'Completed booking cannot be cancelled', 'BOOKING_ALREADY_COMPLETED');
     }
 
-    cancelledBooking = await bookingRepository.cancelBooking(client, parsedBookingId);
-    lockKey = cancelledBooking.lock_key;
-    lockToken = cancelledBooking.lock_token;
+    if (booking.status === BookingStatus.REFUNDED) {
+      throw new ApiError(409, 'Booking is already refunded', 'BOOKING_ALREADY_REFUNDED');
+    }
+
+    if (booking.status === BookingStatus.CONFIRMED) {
+      if (!canRefundBooking(booking)) {
+        throw new ApiError(409, `Refund is only allowed at least ${REFUND_CUTOFF_HOURS} hours before slot start`, 'REFUND_WINDOW_CLOSED');
+      }
+
+      const payment = await paymentRepository.findPaymentByBookingId(parsedBookingId, client);
+      if (!payment || payment.status !== 'succeeded') {
+        throw new ApiError(409, 'Booking payment is not completed', 'PAYMENT_NOT_COMPLETED');
+      }
+
+      const refundAmountVnd = Math.floor(Number(booking.amount_vnd) * REFUND_RATE);
+      updatedBooking = await bookingRepository.markBookingRefunded(client, {
+        bookingId: parsedBookingId,
+        refundAmountVnd
+      });
+      lockKey = updatedBooking.lock_key;
+      lockToken = updatedBooking.lock_token;
+      return;
+    }
+
+    if (booking.status !== BookingStatus.LOCKED) {
+      throw new ApiError(409, 'Booking cannot be cancelled in current status', 'INVALID_BOOKING_STATUS');
+    }
+
+    updatedBooking = await bookingRepository.cancelBooking(client, parsedBookingId);
+    lockKey = updatedBooking.lock_key;
+    lockToken = updatedBooking.lock_token;
   });
 
   if (lockKey && lockToken) {
     await lockService.releaseLock(lockKey, lockToken);
   }
 
-  emitSlotUpdated(toSlotUpdatedPayload(cancelledBooking));
-  return toBookingResponse(cancelledBooking);
+  emitSlotUpdated(toSlotUpdatedPayload(updatedBooking));
+  return toBookingResponse(updatedBooking);
 }
 
 async function completeBooking(currentUser, bookingId) {
@@ -336,6 +385,10 @@ async function completeBooking(currentUser, bookingId) {
       throw new ApiError(409, 'Cancelled booking cannot be completed', 'BOOKING_ALREADY_CANCELLED');
     }
 
+    if (booking.status === BookingStatus.REFUNDED) {
+      throw new ApiError(409, 'Refunded booking cannot be completed', 'BOOKING_ALREADY_REFUNDED');
+    }
+
     if (booking.status === BookingStatus.COMPLETED) {
       throw new ApiError(409, 'Booking is already completed', 'BOOKING_ALREADY_COMPLETED');
     }
@@ -349,9 +402,8 @@ async function completeBooking(currentUser, bookingId) {
       bookingId: parsedBookingId,
       provider: 'manual_admin',
       providerIntentId,
-      clientSecret: null,
       status: 'succeeded',
-      amountCents: Number(booking.amount_cents),
+      amountVnd: Number(booking.amount_vnd),
       currency: booking.currency
     });
   });

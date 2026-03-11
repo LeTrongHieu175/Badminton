@@ -61,22 +61,11 @@ services:
     container_name: badminton-backend
     restart: unless-stopped
     working_dir: /app
+    env_file:
+      - ./backend/.env
     environment:
-      NODE_ENV: development
-      PORT: 4000
-      APP_ORIGIN: http://localhost:5173
-      SOCKET_CORS_ORIGIN: http://localhost:5173
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/smart_badminton
-      PG_POOL_MAX: 20
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: super-secret-change-me
-      JWT_EXPIRES_IN: 7d
-      BOOKING_LOCK_TTL_SECONDS: 300
-      BOOKING_SWEEP_INTERVAL_MS: 30000
-      PAYMENT_PROVIDER: stripe_mock
-      PAYMENT_WEBHOOK_SECRET: whsec_change_me
-      PAYMENT_WEBHOOK_TOLERANCE_SECONDS: 300
-      DEFAULT_CURRENCY: USD
       AI_SERVICE_BASE_URL: http://ai-service:8001
     volumes:
       - ./backend:/app

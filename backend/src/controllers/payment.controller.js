@@ -6,13 +6,12 @@ const createIntent = asyncHandler(async (req, res) => {
   return sendSuccess(res, result, 'Payment intent created', 201);
 });
 
-const webhook = asyncHandler(async (req, res) => {
-  const signature = req.headers['stripe-signature'];
-  const result = await paymentService.handleWebhook(req.body, signature);
-  return sendSuccess(res, result, 'Webhook processed');
+const sepayWebhook = asyncHandler(async (req, res) => {
+  await paymentService.handleWebhook(req.body, req.headers);
+  return res.status(200).json({ success: true });
 });
 
 module.exports = {
   createIntent,
-  webhook
+  sepayWebhook
 };

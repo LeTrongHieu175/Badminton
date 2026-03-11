@@ -1,5 +1,5 @@
 const { env } = require('../config/env');
-const { assertISODate } = require('../utils/date-time');
+const { assertISODate, formatTimeHHmm } = require('../utils/date-time');
 const slotRepository = require('../repositories/slot.repository');
 
 function normalizeHour(value) {
@@ -66,9 +66,9 @@ async function getRecommendedCourts(currentUser, { date }) {
       location: slot.court_location,
       slotId: Number(slot.slot_id),
       label: slot.label,
-      startTime: slot.start_time,
-      endTime: slot.end_time,
-      priceCents: Number(slot.price_cents)
+      startTime: formatTimeHHmm(slot.start_time),
+      endTime: formatTimeHHmm(slot.end_time),
+      priceVnd: Number(slot.price_vnd)
     }));
 
   const recommendedCourtIds = [...new Set(recommendedSlots.map((slot) => slot.courtId))];

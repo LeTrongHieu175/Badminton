@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import BookingModal from '../components/BookingModal';
 import { useCreateBooking } from '../hooks/useBookings';
 import { useCourt, useCourtAvailability } from '../hooks/useCourts';
-import { formatCurrencyFromCents, formatStatusLabel } from '../utils/formatters';
+import { formatCurrencyFromVnd, formatStatusLabel } from '../utils/formatters';
 import { getApiErrorMessage } from '../utils/errors';
 
 function CourtBooking() {
@@ -108,7 +108,7 @@ function CourtBooking() {
             }`}
           >
             <p className='text-sm font-semibold text-slate-900'>{slot.label}</p>
-            <p className='mt-1 text-xs text-slate-500'>{formatCurrencyFromCents(slot.priceCents)}</p>
+            <p className='mt-1 text-xs text-slate-500'>{formatCurrencyFromVnd(slot.priceVnd)}</p>
             <span
               className={`mt-3 inline-block rounded-full px-2 py-1 text-xs font-semibold ${
                 slot.status === 'AVAILABLE'
@@ -117,6 +117,8 @@ function CourtBooking() {
                     ? 'bg-amber-100 text-amber-700'
                     : slot.status === 'CONFIRMED'
                       ? 'bg-cyan-100 text-cyan-700'
+                      : slot.status === 'REFUNDED'
+                        ? 'bg-violet-100 text-violet-700'
                       : 'bg-slate-200 text-slate-700'
               }`}
             >

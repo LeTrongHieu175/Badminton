@@ -5,16 +5,25 @@ const { emitSlotUpdated } = require('../sockets/booking.socket');
 const { toSlotUpdatedPayload } = require('./booking.service');
 
 async function expireLockedBookings(batchSize = 100) {
-  const expiredBookings = await withTransaction(async (client) => {
-    return bookingRepository.cancelExpiredLockedBookings(client, batchSize);
+  const { expiredBookings, completedBookings } = await withTransaction(async (client) => {
+    const expired = await bookingRepository.cancelExpiredLockedBookings(client, batchSize);
+    const completed = await bookingRepository.completeDueConfirmedBookings(client, batchSize);
+
+    return {
+      expiredBookings: expired,
+      completedBookings: completed
+    };
   });
 
-  if (expiredBookings.length === 0) {
-    return 0;
+  if (expiredBookings.length === 0 && completedBookings.length === 0) {
+    return {
+      expiredCount: 0,
+      completedCount: 0
+    };
   }
 
   await Promise.all(
-    expiredBookings.map(async (booking) => {
+    [...expiredBookings, ...completedBookings].map(async (booking) => {
       if (booking.lock_key && booking.lock_token) {
         await lockService.releaseLock(booking.lock_key, booking.lock_token);
       }
@@ -23,7 +32,10 @@ async function expireLockedBookings(batchSize = 100) {
     })
   );
 
-  return expiredBookings.length;
+  return {
+    expiredCount: expiredBookings.length,
+    completedCount: completedBookings.length
+  };
 }
 
 module.exports = {

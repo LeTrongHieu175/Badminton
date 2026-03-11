@@ -30,7 +30,8 @@ const getUserBookings = asyncHandler(async (req, res) => {
 
 const cancelBooking = asyncHandler(async (req, res) => {
   const booking = await bookingService.cancelBooking(req.user, req.params.id);
-  return sendSuccess(res, booking, 'Booking cancelled successfully');
+  const message = booking.status === 'REFUNDED' ? 'Booking refunded successfully' : 'Booking cancelled successfully';
+  return sendSuccess(res, booking, message);
 });
 
 const completeBooking = asyncHandler(async (req, res) => {

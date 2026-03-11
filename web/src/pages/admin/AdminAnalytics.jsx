@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import ChartCard from '../../components/ChartCard';
 import { useAdminDashboard } from '../../hooks/useAdminDashboard';
-import { formatCurrencyFromCents } from '../../utils/formatters';
+import { formatCurrencyFromVnd } from '../../utils/formatters';
 import { getApiErrorMessage } from '../../utils/errors';
 
 function AdminAnalytics() {
@@ -30,7 +30,7 @@ function AdminAnalytics() {
 
   const mergedSeries = data.revenue.map((point, index) => ({
     period: point.period,
-    revenueCents: point.revenueCents,
+    revenueVnd: point.revenueVnd,
     utilization: data.utilization[index % Math.max(data.utilization.length, 1)]?.usage || 0
   }));
 
@@ -45,14 +45,14 @@ function AdminAnalytics() {
             <YAxis yAxisId='right' orientation='right' tick={{ fontSize: 12 }} stroke='#94a3b8' />
             <Tooltip
               formatter={(value, key) => {
-                if (key === 'revenueCents') {
-                  return formatCurrencyFromCents(value);
+                if (key === 'revenueVnd') {
+                  return formatCurrencyFromVnd(value);
                 }
                 return `${value}%`;
               }}
             />
-            <Legend formatter={(value) => (value === 'revenueCents' ? 'Doanh thu' : 'Công suất (%)')} />
-            <Line yAxisId='left' type='monotone' dataKey='revenueCents' stroke='#0d9488' strokeWidth={3} dot={false} />
+            <Legend formatter={(value) => (value === 'revenueVnd' ? 'Doanh thu' : 'Công suất (%)')} />
+            <Line yAxisId='left' type='monotone' dataKey='revenueVnd' stroke='#0d9488' strokeWidth={3} dot={false} />
             <Line yAxisId='right' type='monotone' dataKey='utilization' stroke='#0284c7' strokeWidth={3} dot={false} />
           </LineChart>
         </ResponsiveContainer>

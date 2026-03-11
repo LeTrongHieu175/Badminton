@@ -14,7 +14,7 @@ import BookingTable from '../../components/BookingTable';
 import ChartCard from '../../components/ChartCard';
 import StatCard from '../../components/StatCard';
 import { useAdminDashboard } from '../../hooks/useAdminDashboard';
-import { formatCurrencyFromCents, formatNumberVi } from '../../utils/formatters';
+import { formatCurrencyFromVnd, formatNumberVi } from '../../utils/formatters';
 import { getApiErrorMessage } from '../../utils/errors';
 
 function heatColor(demand) {
@@ -45,7 +45,7 @@ function AdminDashboard() {
   return (
     <div className='space-y-6'>
       <section className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
-        <StatCard label='Tổng doanh thu' value={formatCurrencyFromCents(stats.totalRevenueCents)} tone='info' />
+        <StatCard label='Tổng doanh thu' value={formatCurrencyFromVnd(stats.totalRevenueVnd)} tone='info' />
         <StatCard label='Tổng lượt đặt sân' value={formatNumberVi(stats.totalBookings)} />
         <StatCard label='Người dùng hoạt động' value={formatNumberVi(stats.activeUsers)} tone='success' />
         <StatCard
@@ -62,8 +62,8 @@ function AdminDashboard() {
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
               <XAxis dataKey='period' tick={{ fontSize: 12 }} stroke='#94a3b8' />
               <YAxis tick={{ fontSize: 12 }} stroke='#94a3b8' />
-              <Tooltip formatter={(value) => formatCurrencyFromCents(value)} labelFormatter={(label) => `Ngày: ${label}`} />
-              <Line type='monotone' dataKey='revenueCents' stroke='#0d9488' strokeWidth={3} dot={false} />
+              <Tooltip formatter={(value) => formatCurrencyFromVnd(value)} labelFormatter={(label) => `Ngày: ${label}`} />
+              <Line type='monotone' dataKey='revenueVnd' stroke='#0d9488' strokeWidth={3} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>

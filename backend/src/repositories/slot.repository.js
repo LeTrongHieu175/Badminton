@@ -3,7 +3,7 @@ const { query } = require('../config/db');
 async function findSlotByIdAndCourt(slotId, courtId) {
   const result = await query(
     `
-      SELECT id, court_id, label, start_time, end_time, price_cents, is_active, created_at
+      SELECT id, court_id, label, start_time, end_time, price_vnd, is_active, created_at
       FROM court_slots
       WHERE id = $1 AND court_id = $2
       LIMIT 1
@@ -17,7 +17,7 @@ async function findSlotByIdAndCourt(slotId, courtId) {
 async function listSlotsByCourtId(courtId, { includeInactive = false } = {}) {
   const result = await query(
     `
-      SELECT id, court_id, label, start_time, end_time, price_cents, is_active, created_at
+      SELECT id, court_id, label, start_time, end_time, price_vnd, is_active, created_at
       FROM court_slots
       WHERE court_id = $1
         AND ($2::boolean = TRUE OR is_active = TRUE)
@@ -29,20 +29,20 @@ async function listSlotsByCourtId(courtId, { includeInactive = false } = {}) {
   return result.rows;
 }
 
-async function createSlot({ courtId, label, startTime, endTime, priceCents }) {
+async function createSlot({ courtId, label, startTime, endTime, priceVnd }) {
   const result = await query(
     `
-      INSERT INTO court_slots (court_id, label, start_time, end_time, price_cents, is_active, created_at)
+      INSERT INTO court_slots (court_id, label, start_time, end_time, price_vnd, is_active, created_at)
       VALUES ($1, $2, $3, $4, $5, TRUE, NOW())
-      RETURNING id, court_id, label, start_time, end_time, price_cents, is_active, created_at
+      RETURNING id, court_id, label, start_time, end_time, price_vnd, is_active, created_at
     `,
-    [courtId, label, startTime, endTime, priceCents]
+    [courtId, label, startTime, endTime, priceVnd]
   );
 
   return result.rows[0];
 }
 
-async function updateSlot(slotId, courtId, { label, startTime, endTime, priceCents, isActive }) {
+async function updateSlot(slotId, courtId, { label, startTime, endTime, priceVnd, isActive }) {
   const fields = [];
   const values = [];
 
@@ -61,9 +61,9 @@ async function updateSlot(slotId, courtId, { label, startTime, endTime, priceCen
     values.push(endTime);
   }
 
-  if (priceCents !== undefined) {
-    fields.push(`price_cents = $${values.length + 1}`);
-    values.push(priceCents);
+  if (priceVnd !== undefined) {
+    fields.push(`price_vnd = $${values.length + 1}`);
+    values.push(priceVnd);
   }
 
   if (isActive !== undefined) {
@@ -83,7 +83,7 @@ async function updateSlot(slotId, courtId, { label, startTime, endTime, priceCen
       SET ${fields.join(', ')}
       WHERE id = $${values.length - 1}
         AND court_id = $${values.length}
-      RETURNING id, court_id, label, start_time, end_time, price_cents, is_active, created_at
+      RETURNING id, court_id, label, start_time, end_time, price_vnd, is_active, created_at
     `,
     values
   );
@@ -98,7 +98,7 @@ async function deactivateSlot(slotId, courtId) {
       SET is_active = FALSE
       WHERE id = $1
         AND court_id = $2
-      RETURNING id, court_id, label, start_time, end_time, price_cents, is_active, created_at
+      RETURNING id, court_id, label, start_time, end_time, price_vnd, is_active, created_at
     `,
     [slotId, courtId]
   );
@@ -114,7 +114,7 @@ async function listCourtAvailability(courtId, bookingDate) {
         s.label,
         s.start_time,
         s.end_time,
-        s.price_cents,
+        s.price_vnd,
         b.id AS booking_id,
         b.status AS booking_status,
         b.lock_expires_at,
@@ -155,7 +155,7 @@ async function listAvailableSlotsByDate(bookingDate) {
         s.label,
         s.start_time,
         s.end_time,
-        s.price_cents,
+        s.price_vnd,
         CASE
           WHEN b.status = 'CONFIRMED' THEN 'CONFIRMED'
           WHEN b.status = 'LOCKED' AND b.lock_expires_at > NOW() THEN 'LOCKED'

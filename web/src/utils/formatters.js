@@ -11,8 +11,6 @@ const VI_DATE_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
   year: 'numeric'
 });
 
-export const USD_TO_VND_RATE = 25000;
-
 const STATUS_LABELS = {
   ACTIVE: 'Đang hoạt động',
   INACTIVE: 'Ngừng hoạt động',
@@ -22,6 +20,7 @@ const STATUS_LABELS = {
   CONFIRMED: 'Đã xác nhận',
   COMPLETED: 'Hoàn thành',
   CANCELLED: 'Đã hủy',
+  REFUNDED: 'Hoàn tiền',
   PENDING: 'Đang chờ'
 };
 
@@ -34,12 +33,8 @@ export function formatCurrencyVnd(amount) {
   return VND_CURRENCY_FORMATTER.format(Number(amount || 0));
 }
 
-export function formatCurrencyFromUsd(amount) {
-  return formatCurrencyVnd(Number(amount || 0) * USD_TO_VND_RATE);
-}
-
-export function formatCurrencyFromCents(cents) {
-  return formatCurrencyFromUsd(Number(cents || 0) / 100);
+export function formatCurrencyFromVnd(vnd) {
+  return formatCurrencyVnd(vnd);
 }
 
 export function formatNumberVi(value) {

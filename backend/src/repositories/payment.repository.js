@@ -10,9 +10,8 @@ async function upsertPaymentIntent(
     bookingId,
     provider,
     providerIntentId,
-    clientSecret,
     status,
-    amountCents,
+    amountVnd,
     currency
   }
 ) {
@@ -22,21 +21,19 @@ async function upsertPaymentIntent(
         booking_id,
         provider,
         provider_intent_id,
-        client_secret,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         created_at,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
       ON CONFLICT (booking_id)
       DO UPDATE
       SET provider = EXCLUDED.provider,
           provider_intent_id = EXCLUDED.provider_intent_id,
-          client_secret = EXCLUDED.client_secret,
           status = EXCLUDED.status,
-          amount_cents = EXCLUDED.amount_cents,
+          amount_vnd = EXCLUDED.amount_vnd,
           currency = EXCLUDED.currency,
           updated_at = NOW()
       RETURNING
@@ -44,14 +41,13 @@ async function upsertPaymentIntent(
         booking_id,
         provider,
         provider_intent_id,
-        client_secret,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         created_at,
         updated_at
     `,
-    [bookingId, provider, providerIntentId, clientSecret, status, amountCents, currency]
+    [bookingId, provider, providerIntentId, status, amountVnd, currency]
   );
 
   return result.rows[0];
@@ -65,9 +61,8 @@ async function findPaymentByProviderIntentId(providerIntentId, client = null, fo
         booking_id,
         provider,
         provider_intent_id,
-        client_secret,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         provider_event_id,
         raw_payload,
@@ -92,9 +87,8 @@ async function findPaymentByBookingId(bookingId, client = null) {
         booking_id,
         provider,
         provider_intent_id,
-        client_secret,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         provider_event_id,
         created_at,
@@ -123,7 +117,7 @@ async function markPaymentSucceeded(client, { paymentId, providerEventId, rawPay
         booking_id,
         provider_intent_id,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         updated_at
     `,
@@ -147,7 +141,7 @@ async function markPaymentFailed(client, { paymentId, providerEventId, rawPayloa
         booking_id,
         provider_intent_id,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         updated_at
     `,

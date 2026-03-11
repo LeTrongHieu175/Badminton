@@ -9,14 +9,14 @@ import {
   updateCourt,
   updateCourtSlot
 } from '../../services/courtService';
-import { formatCurrencyFromCents } from '../../utils/formatters';
+import { formatCurrencyFromVnd } from '../../utils/formatters';
 import { getApiErrorMessage } from '../../utils/errors';
 
 function AdminCourts() {
   const queryClient = useQueryClient();
   const [selectedCourtId, setSelectedCourtId] = useState(null);
   const [courtForm, setCourtForm] = useState({ name: '', location: '' });
-  const [slotForm, setSlotForm] = useState({ label: '', startTime: '', endTime: '', priceCents: '' });
+  const [slotForm, setSlotForm] = useState({ label: '', startTime: '', endTime: '', priceVnd: '' });
 
   const { data: courts = [], isLoading, isError, error } = useCourts({ includeInactive: true });
   const { data: selectedCourt } = useCourt(selectedCourtId);
@@ -49,7 +49,7 @@ function AdminCourts() {
     mutationFn: ({ courtId, payload }) => createCourtSlot(courtId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['court', selectedCourtId] });
-      setSlotForm({ label: '', startTime: '', endTime: '', priceCents: '' });
+      setSlotForm({ label: '', startTime: '', endTime: '', priceVnd: '' });
     }
   });
 
@@ -229,7 +229,7 @@ function AdminCourts() {
                   label: slotForm.label || undefined,
                   startTime: slotForm.startTime,
                   endTime: slotForm.endTime,
-                  priceCents: Number(slotForm.priceCents)
+                  priceVnd: Number(slotForm.priceVnd)
                 }
               });
             }}
@@ -260,9 +260,9 @@ function AdminCourts() {
                 required
                 type='number'
                 min='1'
-                value={slotForm.priceCents}
-                onChange={(event) => setSlotForm((prev) => ({ ...prev, priceCents: event.target.value }))}
-                placeholder='Giá (cents)'
+                value={slotForm.priceVnd}
+                onChange={(event) => setSlotForm((prev) => ({ ...prev, priceVnd: event.target.value }))}
+                placeholder='Giá (VND)'
                 className='w-full rounded-xl border border-slate-200 px-3 py-2 text-sm'
               />
               <button
@@ -293,7 +293,7 @@ function AdminCourts() {
                     <td className='px-4 py-3 text-slate-700'>
                       {slot.startTime} - {slot.endTime}
                     </td>
-                    <td className='px-4 py-3 text-slate-700'>{formatCurrencyFromCents(slot.priceCents)}</td>
+                    <td className='px-4 py-3 text-slate-700'>{formatCurrencyFromVnd(slot.priceVnd)}</td>
                     <td className='px-4 py-3 text-slate-700'>
                       {slot.isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa'}
                     </td>
@@ -309,7 +309,7 @@ function AdminCourts() {
                                 label: window.prompt('Nhãn mới', slot.label || '') || slot.label,
                                 startTime: window.prompt('Giờ bắt đầu (HH:mm)', slot.startTime) || slot.startTime,
                                 endTime: window.prompt('Giờ kết thúc (HH:mm)', slot.endTime) || slot.endTime,
-                                priceCents: Number(window.prompt('Giá mới (cents)', String(slot.priceCents)) || slot.priceCents)
+                                priceVnd: Number(window.prompt('Giá mới (VND)', String(slot.priceVnd)) || slot.priceVnd)
                               }
                             })
                           }

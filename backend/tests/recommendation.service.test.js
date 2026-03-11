@@ -26,7 +26,7 @@ describe('recommendation service', () => {
         label: 'Evening',
         start_time: '18:00',
         end_time: '19:00',
-        price_cents: 1200,
+        price_vnd: 120000,
         status: 'AVAILABLE'
       },
       {
@@ -37,7 +37,7 @@ describe('recommendation service', () => {
         label: 'Prime',
         start_time: '19:00',
         end_time: '20:00',
-        price_cents: 1800,
+        price_vnd: 180000,
         status: 'LOCKED'
       }
     ]);

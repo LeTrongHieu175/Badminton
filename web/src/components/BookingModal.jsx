@@ -1,4 +1,4 @@
-import { formatCurrencyFromCents } from '../utils/formatters';
+import { formatCurrencyFromVnd } from '../utils/formatters';
 
 function BookingModal({ open, court, slot, date, onClose, onConfirm, isSubmitting }) {
   if (!open || !court || !slot) {
@@ -13,7 +13,7 @@ function BookingModal({ open, court, slot, date, onClose, onConfirm, isSubmittin
           {court.name} · {date} · {slot.label}
         </p>
         <p className='mt-1 text-sm text-slate-600'>
-          {slot.startTime} - {slot.endTime} · {formatCurrencyFromCents(slot.priceCents)}
+          {slot.startTime} - {slot.endTime} · {formatCurrencyFromVnd(slot.priceVnd)}
         </p>
 
         <div className='mt-6 flex justify-end gap-2'>

@@ -2,7 +2,7 @@ import BookingTable from '../components/BookingTable';
 import StatCard from '../components/StatCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserBookings } from '../hooks/useBookings';
-import { formatCurrencyFromCents } from '../utils/formatters';
+import { formatCurrencyFromVnd } from '../utils/formatters';
 import { getApiErrorMessage } from '../utils/errors';
 
 function UserDashboard() {
@@ -12,7 +12,7 @@ function UserDashboard() {
   const bookings = data?.items || [];
   const confirmed = bookings.filter((item) => item.status === 'CONFIRMED' || item.status === 'COMPLETED').length;
   const pending = bookings.filter((item) => item.status === 'PENDING' || item.status === 'LOCKED').length;
-  const spentCents = bookings.reduce((sum, item) => sum + item.amountCents, 0);
+  const spentVnd = bookings.reduce((sum, item) => sum + item.amountVnd, 0);
 
   return (
     <div className='space-y-6'>
@@ -20,7 +20,7 @@ function UserDashboard() {
         <StatCard label='Tổng lượt đặt của tôi' value={bookings.length} delta='Thống kê toàn bộ thời gian' />
         <StatCard label='Đã xác nhận' value={confirmed} tone='success' />
         <StatCard label='Đang chờ' value={pending} tone='warning' />
-        <StatCard label='Tổng chi phí' value={formatCurrencyFromCents(spentCents)} tone='info' />
+        <StatCard label='Tổng chi phí' value={formatCurrencyFromVnd(spentVnd)} tone='info' />
       </section>
 
       <section className='surface-card p-5'>

@@ -51,7 +51,7 @@ async function createLockedBooking(
     courtId,
     slotId,
     bookingDate,
-    amountCents,
+    amountVnd,
     currency,
     lockKey,
     lockToken,
@@ -66,7 +66,7 @@ async function createLockedBooking(
         slot_id,
         booking_date,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         lock_key,
         lock_token,
@@ -97,7 +97,7 @@ async function createLockedBooking(
         slot_id,
         booking_date,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         lock_key,
         lock_token,
@@ -106,7 +106,7 @@ async function createLockedBooking(
         created_at,
         updated_at
     `,
-    [userId, courtId, slotId, bookingDate, amountCents, currency, lockKey, lockToken, lockExpiresAt]
+    [userId, courtId, slotId, bookingDate, amountVnd, currency, lockKey, lockToken, lockExpiresAt]
   );
 
   return result.rows[0];
@@ -122,13 +122,15 @@ async function findBookingById(bookingId) {
         b.slot_id,
         b.booking_date,
         b.status,
-        b.amount_cents,
+        b.amount_vnd,
         b.currency,
         b.lock_key,
         b.lock_token,
         b.lock_expires_at,
         b.confirmed_at,
         b.cancelled_at,
+        b.refunded_at,
+        b.refund_amount_vnd,
         b.created_at,
         b.updated_at,
         c.name AS court_name,
@@ -151,24 +153,29 @@ async function findBookingByIdForUpdate(client, bookingId) {
   const result = await dbClient(client).query(
     `
       SELECT
-        id,
-        user_id,
-        court_id,
-        slot_id,
-        booking_date,
-        status,
-        amount_cents,
-        currency,
-        lock_key,
-        lock_token,
-        lock_expires_at,
-        payment_due_at,
-        confirmed_at,
-        cancelled_at,
-        created_at,
-        updated_at
-      FROM bookings
-      WHERE id = $1
+        b.id,
+        b.user_id,
+        b.court_id,
+        b.slot_id,
+        b.booking_date,
+        b.status,
+        b.amount_vnd,
+        b.currency,
+        b.lock_key,
+        b.lock_token,
+        b.lock_expires_at,
+        b.payment_due_at,
+        b.confirmed_at,
+        b.cancelled_at,
+        b.refunded_at,
+        b.refund_amount_vnd,
+        b.created_at,
+        b.updated_at,
+        s.start_time,
+        s.end_time
+      FROM bookings b
+      JOIN court_slots s ON s.id = b.slot_id
+      WHERE b.id = $1
       LIMIT 1
       FOR UPDATE
     `,
@@ -188,11 +195,13 @@ async function listBookingsByUserId(userId, { limit, offset }) {
         b.slot_id,
         b.booking_date,
         b.status,
-        b.amount_cents,
+        b.amount_vnd,
         b.currency,
         b.lock_expires_at,
         b.confirmed_at,
         b.cancelled_at,
+        b.refunded_at,
+        b.refund_amount_vnd,
         b.created_at,
         c.name AS court_name,
         s.label AS slot_label,
@@ -265,11 +274,13 @@ async function listAllBookings({ userId, status, dateFrom, dateTo, limit, offset
         b.slot_id,
         b.booking_date,
         b.status,
-        b.amount_cents,
+        b.amount_vnd,
         b.currency,
         b.lock_expires_at,
         b.confirmed_at,
         b.cancelled_at,
+        b.refunded_at,
+        b.refund_amount_vnd,
         b.created_at,
         b.updated_at,
         COALESCE(NULLIF(u.full_name, ''), u.username, u.email) AS user_name,
@@ -320,13 +331,15 @@ async function cancelBooking(client, bookingId) {
         slot_id,
         booking_date,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         lock_key,
         lock_token,
         lock_expires_at,
         confirmed_at,
         cancelled_at,
+        refunded_at,
+        refund_amount_vnd,
         created_at,
         updated_at
     `,
@@ -353,8 +366,16 @@ async function markBookingConfirmed(client, bookingId) {
         slot_id,
         booking_date,
         status,
+        amount_vnd,
+        currency,
         lock_key,
         lock_token,
+        lock_expires_at,
+        confirmed_at,
+        cancelled_at,
+        refunded_at,
+        refund_amount_vnd,
+        created_at,
         updated_at
     `,
     [bookingId]
@@ -380,13 +401,15 @@ async function markBookingCompleted(client, bookingId) {
         slot_id,
         booking_date,
         status,
-        amount_cents,
+        amount_vnd,
         currency,
         lock_key,
         lock_token,
         lock_expires_at,
         confirmed_at,
         cancelled_at,
+        refunded_at,
+        refund_amount_vnd,
         created_at,
         updated_at
     `,
@@ -432,6 +455,83 @@ async function cancelExpiredLockedBookings(client, limit = 100) {
   return result.rows;
 }
 
+async function markBookingRefunded(client, { bookingId, refundAmountVnd }) {
+  const result = await dbClient(client).query(
+    `
+      UPDATE bookings
+      SET status = 'REFUNDED',
+          refunded_at = NOW(),
+          refund_amount_vnd = $2,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING
+        id,
+        user_id,
+        court_id,
+        slot_id,
+        booking_date,
+        status,
+        amount_vnd,
+        currency,
+        lock_key,
+        lock_token,
+        lock_expires_at,
+        confirmed_at,
+        cancelled_at,
+        refunded_at,
+        refund_amount_vnd,
+        created_at,
+        updated_at
+    `,
+    [bookingId, refundAmountVnd]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function completeDueConfirmedBookings(client, limit = 100) {
+  const result = await dbClient(client).query(
+    `
+      WITH due AS (
+        SELECT b.id
+        FROM bookings b
+        JOIN court_slots s ON s.id = b.slot_id
+        WHERE b.status = 'CONFIRMED'
+          AND (b.booking_date::timestamp + s.end_time) <= NOW()
+        ORDER BY b.booking_date ASC, s.end_time ASC
+        LIMIT $1
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE bookings b
+      SET status = 'COMPLETED',
+          updated_at = NOW()
+      FROM due
+      WHERE b.id = due.id
+      RETURNING
+        b.id,
+        b.user_id,
+        b.court_id,
+        b.slot_id,
+        b.booking_date,
+        b.status,
+        b.amount_vnd,
+        b.currency,
+        b.lock_key,
+        b.lock_token,
+        b.lock_expires_at,
+        b.confirmed_at,
+        b.cancelled_at,
+        b.refunded_at,
+        b.refund_amount_vnd,
+        b.created_at,
+        b.updated_at
+    `,
+    [limit]
+  );
+
+  return result.rows;
+}
+
 module.exports = {
   cancelExpiredLocksForSlot,
   findActiveBookingForSlot,
@@ -445,5 +545,7 @@ module.exports = {
   cancelBooking,
   markBookingConfirmed,
   markBookingCompleted,
-  cancelExpiredLockedBookings
+  cancelExpiredLockedBookings,
+  markBookingRefunded,
+  completeDueConfirmedBookings
 };

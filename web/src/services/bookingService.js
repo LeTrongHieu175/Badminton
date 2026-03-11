@@ -1,7 +1,8 @@
 import api, { unwrapPayload } from './api';
 
 function normalizeBooking(booking) {
-  const amountCents = Number(booking.amountCents ?? booking.amount_cents ?? 0);
+  const amountVnd = Number(booking.amountVnd ?? booking.amount_vnd ?? 0);
+  const refundAmountVnd = booking.refundAmountVnd ?? booking.refund_amount_vnd;
 
   return {
     id: Number(booking.id),
@@ -18,12 +19,14 @@ function normalizeBooking(booking) {
     startTime: booking.startTime || booking.start_time,
     endTime: booking.endTime || booking.end_time,
     status: booking.status,
-    amountCents,
-    amount: amountCents / 100,
+    amountVnd,
+    refundAmountVnd: refundAmountVnd === undefined || refundAmountVnd === null ? null : Number(refundAmountVnd),
+    amount: amountVnd,
     currency: booking.currency,
     lockExpiresAt: booking.lockExpiresAt || booking.lock_expires_at,
     confirmedAt: booking.confirmedAt || booking.confirmed_at,
     cancelledAt: booking.cancelledAt || booking.cancelled_at,
+    refundedAt: booking.refundedAt || booking.refunded_at,
     createdAt: booking.createdAt || booking.created_at,
     updatedAt: booking.updatedAt || booking.updated_at
   };

@@ -16,9 +16,11 @@ function startBookingExpiryJob() {
 
     isRunning = true;
     try {
-      const expiredCount = await expireLockedBookings(200);
-      if (expiredCount > 0) {
-        console.log(`[booking-expiry-job] expired ${expiredCount} bookings`);
+      const result = await expireLockedBookings(200);
+      if (result.expiredCount > 0 || result.completedCount > 0) {
+        console.log(
+          `[booking-expiry-job] expired ${result.expiredCount} bookings, completed ${result.completedCount} bookings`
+        );
       }
     } catch (error) {
       console.error('[booking-expiry-job] failed', error);

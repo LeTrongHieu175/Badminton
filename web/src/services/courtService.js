@@ -15,7 +15,7 @@ function normalizeCourt(court) {
           label: slot.label || '',
           startTime: slot.startTime || slot.start_time,
           endTime: slot.endTime || slot.end_time,
-          priceCents: Number(slot.priceCents ?? slot.price_cents ?? 0),
+          priceVnd: Number(slot.priceVnd ?? slot.price_vnd ?? 0),
           isActive: Boolean(slot.isActive ?? slot.is_active)
         }))
       : []
@@ -49,7 +49,7 @@ export async function getCourtAvailability(courtId, date) {
     startTime: slot.startTime || slot.start_time,
     endTime: slot.endTime || slot.end_time,
     status: slot.status,
-    priceCents: Number(slot.priceCents ?? slot.price_cents ?? 0),
+    priceVnd: Number(slot.priceVnd ?? slot.price_vnd ?? 0),
     bookingId: slot.bookingId ?? slot.booking_id ?? null,
     lockExpiresAt: slot.lockExpiresAt ?? slot.lock_expires_at ?? null
   }));
@@ -71,7 +71,7 @@ export async function getCourtRecommendations(date) {
           startTime: slot.startTime,
           endTime: slot.endTime,
           label: slot.label,
-          priceCents: Number(slot.priceCents)
+          priceVnd: Number(slot.priceVnd)
         }))
       : [],
     recommendedCourtIds: Array.isArray(payload.recommendedCourtIds)
@@ -106,7 +106,7 @@ export async function createCourtSlot(courtId, payload) {
     label: slot.label || '',
     startTime: slot.startTime || slot.start_time,
     endTime: slot.endTime || slot.end_time,
-    priceCents: Number(slot.priceCents ?? slot.price_cents),
+    priceVnd: Number(slot.priceVnd ?? slot.price_vnd),
     isActive: Boolean(slot.isActive ?? slot.is_active)
   };
 }
@@ -121,7 +121,7 @@ export async function updateCourtSlot(courtId, slotId, payload) {
     label: slot.label || '',
     startTime: slot.startTime || slot.start_time,
     endTime: slot.endTime || slot.end_time,
-    priceCents: Number(slot.priceCents ?? slot.price_cents),
+    priceVnd: Number(slot.priceVnd ?? slot.price_vnd),
     isActive: Boolean(slot.isActive ?? slot.is_active)
   };
 }
@@ -136,7 +136,7 @@ export async function deleteCourtSlot(courtId, slotId) {
     label: slot.label || '',
     startTime: slot.startTime || slot.start_time,
     endTime: slot.endTime || slot.end_time,
-    priceCents: Number(slot.priceCents ?? slot.price_cents),
+    priceVnd: Number(slot.priceVnd ?? slot.price_vnd),
     isActive: Boolean(slot.isActive ?? slot.is_active)
   };
 }

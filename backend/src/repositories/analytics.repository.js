@@ -1,13 +1,22 @@
 const { query } = require('../config/db');
 
+function revenueExpression(alias = 'b') {
+  return `
+    CASE
+      WHEN ${alias}.status = 'COMPLETED' THEN ${alias}.amount_vnd
+      WHEN ${alias}.status = 'REFUNDED' THEN GREATEST(${alias}.amount_vnd - COALESCE(${alias}.refund_amount_vnd, 0), 0)
+      ELSE 0
+    END
+  `;
+}
+
 async function getRevenueSummary(startDate, endDate) {
   const totalResult = await query(
     `
-      SELECT COALESCE(SUM(p.amount_cents), 0)::BIGINT AS total_revenue_cents
-      FROM payments p
-      JOIN bookings b ON b.id = p.booking_id
+      SELECT COALESCE(SUM(${revenueExpression('b')}), 0)::BIGINT AS total_revenue_vnd
+      FROM bookings b
+      JOIN payments p ON p.booking_id = b.id
       WHERE p.status = 'succeeded'
-        AND b.status IN ('CONFIRMED', 'COMPLETED')
         AND b.booking_date BETWEEN $1 AND $2
     `,
     [startDate, endDate]
@@ -17,11 +26,10 @@ async function getRevenueSummary(startDate, endDate) {
     `
       SELECT
         b.booking_date::TEXT AS date,
-        COALESCE(SUM(p.amount_cents), 0)::BIGINT AS revenue_cents
+        COALESCE(SUM(${revenueExpression('b')}), 0)::BIGINT AS revenue_vnd
       FROM bookings b
       JOIN payments p ON p.booking_id = b.id
       WHERE p.status = 'succeeded'
-        AND b.status IN ('CONFIRMED', 'COMPLETED')
         AND b.booking_date BETWEEN $1 AND $2
       GROUP BY b.booking_date
       ORDER BY b.booking_date ASC
@@ -30,10 +38,10 @@ async function getRevenueSummary(startDate, endDate) {
   );
 
   return {
-    totalRevenueCents: Number(totalResult.rows[0].total_revenue_cents),
+    totalRevenueVnd: Number(totalResult.rows[0].total_revenue_vnd),
     dailySeries: dailyResult.rows.map((row) => ({
       date: row.date,
-      revenueCents: Number(row.revenue_cents)
+      revenueVnd: Number(row.revenue_vnd)
     }))
   };
 }
@@ -98,15 +106,14 @@ async function getTopUsersBySpend(startDate, endDate, limit) {
         u.full_name,
         u.email,
         COUNT(DISTINCT b.id)::INT AS booking_count,
-        COALESCE(SUM(p.amount_cents), 0)::BIGINT AS total_spend_cents
+        COALESCE(SUM(${revenueExpression('b')}), 0)::BIGINT AS total_spend_vnd
       FROM users u
       JOIN bookings b ON b.user_id = u.id
       JOIN payments p ON p.booking_id = b.id
-      WHERE b.status IN ('CONFIRMED', 'COMPLETED')
-        AND p.status = 'succeeded'
+      WHERE p.status = 'succeeded'
         AND b.booking_date BETWEEN $1 AND $2
       GROUP BY u.id, u.full_name, u.email
-      ORDER BY total_spend_cents DESC, booking_count DESC
+      ORDER BY total_spend_vnd DESC, booking_count DESC
       LIMIT $3
     `,
     [startDate, endDate, limit]
@@ -117,7 +124,7 @@ async function getTopUsersBySpend(startDate, endDate, limit) {
     fullName: row.full_name,
     email: row.email,
     bookingCount: Number(row.booking_count),
-    totalSpendCents: Number(row.total_spend_cents)
+    totalSpendVnd: Number(row.total_spend_vnd)
   }));
 }
 
@@ -139,11 +146,11 @@ async function getAnalyticsSummary() {
       )
       SELECT
         (
-          SELECT COALESCE(SUM(p.amount_cents), 0)::BIGINT
-          FROM payments p
-          JOIN bookings b ON b.id = p.booking_id
-          WHERE p.status = 'succeeded' AND b.status IN ('CONFIRMED', 'COMPLETED')
-        ) AS total_revenue_cents,
+          SELECT COALESCE(SUM(${revenueExpression('b')}), 0)::BIGINT
+          FROM bookings b
+          JOIN payments p ON p.booking_id = b.id
+          WHERE p.status = 'succeeded'
+        ) AS total_revenue_vnd,
         (
           SELECT COUNT(*)::INT
           FROM bookings

@@ -13,27 +13,27 @@ ON CONFLICT DO NOTHING;
 WITH all_courts AS (
   SELECT id FROM courts WHERE is_active = TRUE
 )
-INSERT INTO court_slots (court_id, label, start_time, end_time, price_cents)
-SELECT c.id, 'Morning 1', '06:00', '07:00', 1200 FROM all_courts c
+INSERT INTO court_slots (court_id, label, start_time, end_time, price_vnd)
+SELECT c.id, 'Morning 1', '06:00', '07:00', 120000 FROM all_courts c
 ON CONFLICT DO NOTHING;
 
 WITH all_courts AS (
   SELECT id FROM courts WHERE is_active = TRUE
 )
-INSERT INTO court_slots (court_id, label, start_time, end_time, price_cents)
-SELECT c.id, 'Morning 2', '07:00', '08:00', 1200 FROM all_courts c
+INSERT INTO court_slots (court_id, label, start_time, end_time, price_vnd)
+SELECT c.id, 'Morning 2', '07:00', '08:00', 120000 FROM all_courts c
 ON CONFLICT DO NOTHING;
 
 WITH all_courts AS (
   SELECT id FROM courts WHERE is_active = TRUE
 )
-INSERT INTO court_slots (court_id, label, start_time, end_time, price_cents)
-SELECT c.id, 'Evening Prime', '18:00', '19:00', 1800 FROM all_courts c
+INSERT INTO court_slots (court_id, label, start_time, end_time, price_vnd)
+SELECT c.id, 'Evening Prime', '18:00', '19:00', 180000 FROM all_courts c
 ON CONFLICT DO NOTHING;
 
 WITH all_courts AS (
   SELECT id FROM courts WHERE is_active = TRUE
 )
-INSERT INTO court_slots (court_id, label, start_time, end_time, price_cents)
-SELECT c.id, 'Evening Prime 2', '19:00', '20:00', 1800 FROM all_courts c
+INSERT INTO court_slots (court_id, label, start_time, end_time, price_vnd)
+SELECT c.id, 'Evening Prime 2', '19:00', '20:00', 180000 FROM all_courts c
 ON CONFLICT DO NOTHING;

@@ -1,4 +1,4 @@
-import { formatCurrencyFromCents, formatDateVi, formatStatusLabel } from '../utils/formatters';
+import { formatCurrencyFromVnd, formatDateVi, formatStatusLabel } from '../utils/formatters';
 
 function formatStatusBadge(status) {
   const map = {
@@ -6,7 +6,8 @@ function formatStatusBadge(status) {
     COMPLETED: 'bg-cyan-50 text-cyan-700',
     PENDING: 'bg-amber-50 text-amber-700',
     CANCELLED: 'bg-rose-50 text-rose-700',
-    LOCKED: 'bg-amber-50 text-amber-700'
+    LOCKED: 'bg-amber-50 text-amber-700',
+    REFUNDED: 'bg-violet-50 text-violet-700'
   };
   return map[status] || 'bg-slate-100 text-slate-700';
 }
@@ -52,7 +53,7 @@ function BookingTable({
                     {formatStatusLabel(row.status)}
                   </span>
                 </td>
-                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{formatCurrencyFromCents(row.amountCents)}</td>
+                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{formatCurrencyFromVnd(row.amountVnd)}</td>
                 {renderActions ? <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{renderActions(row)}</td> : null}
               </tr>
             ))}

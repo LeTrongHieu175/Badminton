@@ -61,7 +61,7 @@ async function getSummary() {
   const utilizationRate = totalAvailableSlots > 0 ? confirmedBookings / totalAvailableSlots : 0;
 
   return {
-    totalRevenueCents: Number(summary.total_revenue_cents || 0),
+    totalRevenueVnd: Number(summary.total_revenue_vnd || 0),
     totalBookings: Number(summary.total_bookings || 0),
     activeUsers: Number(summary.active_users || 0),
     avgUtilizationPercent: Number((utilizationRate * 100).toFixed(2))

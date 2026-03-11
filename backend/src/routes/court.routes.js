@@ -15,7 +15,7 @@ router.delete('/:id', roleMiddleware(Role.ADMIN), courtController.deleteCourt);
 router.post(
   '/:id/slots',
   roleMiddleware(Role.ADMIN),
-  requireBodyFields(['startTime', 'endTime', 'priceCents']),
+  requireBodyFields(['startTime', 'endTime', 'priceVnd']),
   courtController.createCourtSlot
 );
 router.patch('/:id/slots/:slotId', roleMiddleware(Role.ADMIN), courtController.updateCourtSlot);

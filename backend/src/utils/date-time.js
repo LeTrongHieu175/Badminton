@@ -24,8 +24,24 @@ function dateDiffInDaysInclusive(startDate, endDate) {
   return Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
 }
 
+function formatTimeHHmm(timeValue) {
+  const normalized = String(timeValue || '').trim();
+  const match = normalized.match(/^([01]\d|2[0-3]):([0-5]\d)/);
+  if (!match) {
+    return normalized;
+  }
+
+  return `${match[1]}:${match[2]}`;
+}
+
+function combineDateAndTime(dateString, timeString) {
+  return new Date(`${dateString}T${formatTimeHHmm(timeString)}:00`);
+}
+
 module.exports = {
   assertISODate,
   addSeconds,
-  dateDiffInDaysInclusive
+  dateDiffInDaysInclusive,
+  formatTimeHHmm,
+  combineDateAndTime
 };

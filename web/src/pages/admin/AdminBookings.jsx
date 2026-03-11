@@ -8,8 +8,25 @@ const STATUS_OPTIONS = [
   { value: 'LOCKED', label: 'Đã khóa' },
   { value: 'CONFIRMED', label: 'Đã xác nhận' },
   { value: 'COMPLETED', label: 'Hoàn thành' },
-  { value: 'CANCELLED', label: 'Đã hủy' }
+  { value: 'CANCELLED', label: 'Đã hủy' },
+  { value: 'REFUNDED', label: 'Hoàn tiền' }
 ];
+
+const REFUND_CUTOFF_HOURS = 5;
+
+function canRefundBooking(booking) {
+  if (!booking?.bookingDate || !booking?.startTime) {
+    return false;
+  }
+
+  const slotStart = new Date(`${booking.bookingDate}T${booking.startTime}:00`);
+  if (Number.isNaN(slotStart.getTime())) {
+    return false;
+  }
+
+  const diffMs = slotStart.getTime() - Date.now();
+  return diffMs >= REFUND_CUTOFF_HOURS * 60 * 60 * 1000;
+}
 
 function AdminBookings() {
   const [filters, setFilters] = useState({
@@ -39,7 +56,9 @@ function AdminBookings() {
 
   const bookings = data?.items || [];
   const activeBookings = bookings.filter((item) => item.status === 'LOCKED' || item.status === 'CONFIRMED');
-  const historyBookings = bookings.filter((item) => item.status === 'COMPLETED' || item.status === 'CANCELLED');
+  const historyBookings = bookings.filter(
+    (item) => item.status === 'COMPLETED' || item.status === 'CANCELLED' || item.status === 'REFUNDED'
+  );
   const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0, limit: 20 };
 
   const handleFilterChange = (key, value) => {
@@ -136,26 +155,55 @@ function AdminBookings() {
             <BookingTable
               rows={activeBookings}
               emptyMessage='Không có đơn đang đặt phù hợp bộ lọc.'
-              renderActions={(row) => (
-                <div className='flex gap-2'>
-                  <button
-                    type='button'
-                    onClick={() => completeMutation.mutate(row.id)}
-                    disabled={completeMutation.isPending || cancelMutation.isPending}
-                    className='rounded-lg border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60'
-                  >
-                    Hoàn thành
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => cancelMutation.mutate(row.id)}
-                    disabled={completeMutation.isPending || cancelMutation.isPending}
-                    className='rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60'
-                  >
-                    Hủy
-                  </button>
-                </div>
-              )}
+              renderActions={(row) => {
+                if (row.status === 'LOCKED') {
+                  return (
+                    <div className='flex gap-2'>
+                      <button
+                        type='button'
+                        onClick={() => completeMutation.mutate(row.id)}
+                        disabled={completeMutation.isPending || cancelMutation.isPending}
+                        className='rounded-lg border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60'
+                      >
+                        Hoàn thành
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => cancelMutation.mutate(row.id)}
+                        disabled={completeMutation.isPending || cancelMutation.isPending}
+                        className='rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60'
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  );
+                }
+
+                if (row.status === 'CONFIRMED') {
+                  return (
+                    <div className='flex gap-2'>
+                      <button
+                        type='button'
+                        onClick={() => completeMutation.mutate(row.id)}
+                        disabled={completeMutation.isPending || cancelMutation.isPending}
+                        className='rounded-lg border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60'
+                      >
+                        Hoàn thành
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => cancelMutation.mutate(row.id)}
+                        disabled={!canRefundBooking(row) || completeMutation.isPending || cancelMutation.isPending}
+                        className='rounded-lg border border-violet-200 px-3 py-1 text-xs font-semibold text-violet-700 disabled:cursor-not-allowed disabled:opacity-60'
+                      >
+                        Hoàn tiền
+                      </button>
+                    </div>
+                  );
+                }
+
+                return null;
+              }}
             />
           </div>
 

@@ -6,14 +6,22 @@ import {
   getAllBookings,
   getUserBookings
 } from '../services/bookingService';
+import { createPaymentIntent } from '../services/paymentService';
 
 export function useUserBookings(userId, options = {}) {
-  const { page = 1, limit = 20 } = options;
+  const {
+    page = 1,
+    limit = 20,
+    refetchInterval = false,
+    refetchIntervalInBackground = false
+  } = options;
 
   return useQuery({
     queryKey: ['bookings', 'user', userId, page, limit],
     queryFn: () => getUserBookings(userId, { page, limit }),
-    enabled: Boolean(userId)
+    enabled: Boolean(userId),
+    refetchInterval,
+    refetchIntervalInBackground
   });
 }
 
@@ -58,5 +66,11 @@ export function useCompleteBooking() {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
     }
+  });
+}
+
+export function useCreatePaymentIntent() {
+  return useMutation({
+    mutationFn: createPaymentIntent
   });
 }
