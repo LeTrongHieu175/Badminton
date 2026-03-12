@@ -1,8 +1,28 @@
 import api, { unwrapPayload } from './api';
 
+function normalizeDateOnly(value) {
+  if (!value) {
+    return value;
+  }
+
+  const raw = String(value).trim();
+  const directMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (directMatch) {
+    return directMatch[1];
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return raw;
+  }
+
+  return parsed.toISOString().slice(0, 10);
+}
+
 function normalizeBooking(booking) {
   const amountVnd = Number(booking.amountVnd ?? booking.amount_vnd ?? 0);
   const refundAmountVnd = booking.refundAmountVnd ?? booking.refund_amount_vnd;
+  const bookingDate = normalizeDateOnly(booking.date || booking.booking_date);
 
   return {
     id: Number(booking.id),
@@ -10,7 +30,7 @@ function normalizeBooking(booking) {
     userName: booking.userName || booking.user_name || '',
     courtId: Number(booking.courtId ?? booking.court_id),
     slotId: Number(booking.slotId ?? booking.slot_id),
-    bookingDate: booking.date || booking.booking_date,
+    bookingDate,
     courtName: booking.courtName || booking.court_name || '-',
     slotLabel:
       booking.slotLabel ||
@@ -52,10 +72,11 @@ export async function getUserBookings(userId, { page = 1, limit = 20 } = {}) {
   };
 }
 
-export async function getAllBookings({ userId, status, dateFrom, dateTo, page = 1, limit = 20 } = {}) {
+export async function getAllBookings({ userId, userName, status, dateFrom, dateTo, page = 1, limit = 20 } = {}) {
   const response = await api.get('/bookings', {
     params: {
       userId,
+      userName,
       status,
       dateFrom,
       dateTo,

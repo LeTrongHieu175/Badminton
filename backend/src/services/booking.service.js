@@ -196,7 +196,7 @@ async function getUserBookings(currentUser, targetUserId, { page = 1, limit = 20
   };
 }
 
-async function getAllBookings(currentUser, { userId, status, dateFrom, dateTo, page = 1, limit = 20 }) {
+async function getAllBookings(currentUser, { userId, userName, status, dateFrom, dateTo, page = 1, limit = 20 }) {
   if (currentUser.role !== Role.ADMIN) {
     throw new ApiError(403, 'Admin permission required', 'FORBIDDEN');
   }
@@ -213,6 +213,11 @@ async function getAllBookings(currentUser, { userId, status, dateFrom, dateTo, p
     if (!Number.isInteger(normalizedUserId)) {
       throw new ApiError(400, 'userId must be an integer', 'VALIDATION_ERROR');
     }
+  }
+
+  let normalizedUserName;
+  if (userName !== undefined && userName !== null && String(userName).trim() !== '') {
+    normalizedUserName = String(userName).trim();
   }
 
   let normalizedStatus;
@@ -252,6 +257,7 @@ async function getAllBookings(currentUser, { userId, status, dateFrom, dateTo, p
 
   const filters = {
     userId: normalizedUserId,
+    userName: normalizedUserName,
     status: normalizedStatus,
     dateFrom: normalizedDateFrom,
     dateTo: normalizedDateTo

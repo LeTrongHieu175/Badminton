@@ -12,7 +12,8 @@ function canRefundBooking(booking) {
     return false;
   }
 
-  const slotStart = new Date(`${booking.bookingDate}T${booking.startTime}:00`);
+  const bookingDate = String(booking.bookingDate).slice(0, 10);
+  const slotStart = new Date(`${bookingDate}T${booking.startTime}:00`);
   if (Number.isNaN(slotStart.getTime())) {
     return false;
   }
@@ -70,7 +71,7 @@ function BookingHistory() {
       <section className='surface-card p-5'>
         <h2 className='section-title'>Sân đang đặt</h2>
         <p className='subtle-copy mt-1'>
-          Đơn Đã khóa cần thanh toán trong 10 phút. Đơn Đã xác nhận có thể hoàn tiền trước giờ chơi 5 tiếng.
+          Đơn Đã khóa cần thanh toán trong 10 phút. Đơn Đã xác nhận chỉ có thể hoàn tiền khi còn ít nhất 5 tiếng trước giờ chơi.
         </p>
 
         <div className='mt-4'>

@@ -19,7 +19,8 @@ function canRefundBooking(booking) {
     return false;
   }
 
-  const slotStart = new Date(`${booking.bookingDate}T${booking.startTime}:00`);
+  const bookingDate = String(booking.bookingDate).slice(0, 10);
+  const slotStart = new Date(`${bookingDate}T${booking.startTime}:00`);
   if (Number.isNaN(slotStart.getTime())) {
     return false;
   }
@@ -30,7 +31,7 @@ function canRefundBooking(booking) {
 
 function AdminBookings() {
   const [filters, setFilters] = useState({
-    userId: '',
+    userName: '',
     status: '',
     dateFrom: '',
     dateTo: '',
@@ -40,7 +41,7 @@ function AdminBookings() {
 
   const queryFilters = useMemo(
     () => ({
-      userId: filters.userId ? Number(filters.userId) : undefined,
+      userName: filters.userName || undefined,
       status: filters.status || undefined,
       dateFrom: filters.dateFrom || undefined,
       dateTo: filters.dateTo || undefined,
@@ -86,11 +87,10 @@ function AdminBookings() {
 
         <div className='mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5'>
           <input
-            type='number'
-            min='1'
-            value={filters.userId}
-            onChange={(event) => handleFilterChange('userId', event.target.value)}
-            placeholder='User ID'
+            type='text'
+            value={filters.userName}
+            onChange={(event) => handleFilterChange('userName', event.target.value)}
+            placeholder='Tên user'
             className='rounded-xl border border-slate-200 px-3 py-2 text-sm'
           />
 

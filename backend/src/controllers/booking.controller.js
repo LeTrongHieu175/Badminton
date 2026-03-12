@@ -9,6 +9,7 @@ const createBooking = asyncHandler(async (req, res) => {
 const getAllBookings = asyncHandler(async (req, res) => {
   const result = await bookingService.getAllBookings(req.user, {
     userId: req.query.userId,
+    userName: req.query.userName,
     status: req.query.status,
     dateFrom: req.query.dateFrom,
     dateTo: req.query.dateTo,

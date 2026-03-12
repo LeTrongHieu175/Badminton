@@ -12,6 +12,14 @@ function formatStatusBadge(status) {
   return map[status] || 'bg-slate-100 text-slate-700';
 }
 
+function resolveDisplayAmountVnd(row) {
+  if (row.status === 'REFUNDED' && row.refundAmountVnd !== null && row.refundAmountVnd !== undefined) {
+    return row.refundAmountVnd;
+  }
+
+  return row.amountVnd;
+}
+
 function BookingTable({
   rows,
   showUser = true,
@@ -42,21 +50,25 @@ function BookingTable({
             </tr>
           </thead>
           <tbody className='divide-y divide-slate-100 bg-white'>
-            {rows.map((row) => (
-              <tr key={row.id} className='hover:bg-slate-50'>
-                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{formatDateVi(row.bookingDate)}</td>
-                <td className='whitespace-nowrap px-4 py-3 font-medium text-slate-900'>{row.courtName}</td>
-                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{row.slotLabel}</td>
-                {showUser ? <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{row.userName || '-'}</td> : null}
-                <td className='whitespace-nowrap px-4 py-3'>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${formatStatusBadge(row.status)}`}>
-                    {formatStatusLabel(row.status)}
-                  </span>
-                </td>
-                <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{formatCurrencyFromVnd(row.amountVnd)}</td>
-                {renderActions ? <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{renderActions(row)}</td> : null}
-              </tr>
-            ))}
+            {rows.map((row) => {
+              const displayAmountVnd = resolveDisplayAmountVnd(row);
+
+              return (
+                <tr key={row.id} className='hover:bg-slate-50'>
+                  <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{formatDateVi(row.bookingDate)}</td>
+                  <td className='whitespace-nowrap px-4 py-3 font-medium text-slate-900'>{row.courtName}</td>
+                  <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{row.slotLabel}</td>
+                  {showUser ? <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{row.userName || '-'}</td> : null}
+                  <td className='whitespace-nowrap px-4 py-3'>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${formatStatusBadge(row.status)}`}>
+                      {formatStatusLabel(row.status)}
+                    </span>
+                  </td>
+                  <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{formatCurrencyFromVnd(displayAmountVnd)}</td>
+                  {renderActions ? <td className='whitespace-nowrap px-4 py-3 text-slate-700'>{renderActions(row)}</td> : null}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

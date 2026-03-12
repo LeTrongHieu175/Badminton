@@ -34,8 +34,32 @@ function formatTimeHHmm(timeValue) {
   return `${match[1]}:${match[2]}`;
 }
 
+function normalizeISODateOnly(dateValue) {
+  if (dateValue instanceof Date && !Number.isNaN(dateValue.getTime())) {
+    return dateValue.toISOString().slice(0, 10);
+  }
+
+  const raw = String(dateValue || '').trim();
+  if (!raw) {
+    return raw;
+  }
+
+  const directMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (directMatch) {
+    return directMatch[1];
+  }
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return raw;
+}
+
 function combineDateAndTime(dateString, timeString) {
-  return new Date(`${dateString}T${formatTimeHHmm(timeString)}:00`);
+  const dateOnly = normalizeISODateOnly(dateString);
+  return new Date(`${dateOnly}T${formatTimeHHmm(timeString)}:00`);
 }
 
 module.exports = {

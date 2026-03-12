@@ -233,13 +233,21 @@ async function countBookingsByUserId(userId) {
   return result.rows[0].count;
 }
 
-function buildAdminBookingFilters({ userId, status, dateFrom, dateTo }) {
+function buildAdminBookingFilters({ userId, userName, status, dateFrom, dateTo }) {
   const clauses = [];
   const values = [];
 
   if (userId !== undefined && userId !== null) {
     clauses.push(`b.user_id = $${values.length + 1}`);
     values.push(userId);
+  }
+
+  if (userName !== undefined && userName !== null && String(userName).trim() !== '') {
+    const likeValue = `%${String(userName).trim()}%`;
+    clauses.push(
+      `(COALESCE(NULLIF(u.full_name, ''), '') ILIKE $${values.length + 1} OR u.username ILIKE $${values.length + 1} OR u.email ILIKE $${values.length + 1})`
+    );
+    values.push(likeValue);
   }
 
   if (status) {
@@ -263,8 +271,8 @@ function buildAdminBookingFilters({ userId, status, dateFrom, dateTo }) {
   };
 }
 
-async function listAllBookings({ userId, status, dateFrom, dateTo, limit, offset }) {
-  const { whereClause, values } = buildAdminBookingFilters({ userId, status, dateFrom, dateTo });
+async function listAllBookings({ userId, userName, status, dateFrom, dateTo, limit, offset }) {
+  const { whereClause, values } = buildAdminBookingFilters({ userId, userName, status, dateFrom, dateTo });
   const result = await pool.query(
     `
       SELECT
@@ -302,12 +310,13 @@ async function listAllBookings({ userId, status, dateFrom, dateTo, limit, offset
   return result.rows;
 }
 
-async function countAllBookings({ userId, status, dateFrom, dateTo }) {
-  const { whereClause, values } = buildAdminBookingFilters({ userId, status, dateFrom, dateTo });
+async function countAllBookings({ userId, userName, status, dateFrom, dateTo }) {
+  const { whereClause, values } = buildAdminBookingFilters({ userId, userName, status, dateFrom, dateTo });
   const result = await pool.query(
     `
       SELECT COUNT(*)::INT AS count
       FROM bookings b
+      JOIN users u ON u.id = b.user_id
       ${whereClause}
     `,
     values
