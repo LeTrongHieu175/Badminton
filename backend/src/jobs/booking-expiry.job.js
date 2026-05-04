@@ -5,6 +5,11 @@ let intervalRef = null;
 let isRunning = false;
 
 function startBookingExpiryJob() {
+  if (!env.BOOKING_EXPIRY_JOB_ENABLED) {
+    console.warn('[booking-expiry-job] disabled');
+    return;
+  }
+
   if (intervalRef) {
     return;
   }

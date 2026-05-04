@@ -7,9 +7,28 @@ function toInt(value, fallback) {
   return Number.isNaN(parsed) ? fallback : parsed;
 }
 
+function toBoolean(value, fallback) {
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return fallback;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+}
+
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: toInt(process.env.PORT, 4000),
+  AUTO_APPLY_SCHEMA: toBoolean(process.env.AUTO_APPLY_SCHEMA, true),
+  AUTO_RUN_SEED: toBoolean(process.env.AUTO_RUN_SEED, false),
   APP_ORIGIN: process.env.APP_ORIGIN || 'http://localhost:3000',
   SOCKET_CORS_ORIGIN: process.env.SOCKET_CORS_ORIGIN || process.env.APP_ORIGIN || 'http://localhost:3000',
 
@@ -17,12 +36,14 @@ const env = {
   PG_POOL_MAX: toInt(process.env.PG_POOL_MAX, 20),
 
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
+  REDIS_ENABLED: toBoolean(process.env.REDIS_ENABLED, true),
 
   JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-change-me',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
 
   BOOKING_LOCK_TTL_SECONDS: toInt(process.env.BOOKING_LOCK_TTL_SECONDS, 600),
   BOOKING_SWEEP_INTERVAL_MS: toInt(process.env.BOOKING_SWEEP_INTERVAL_MS, 30000),
+  BOOKING_EXPIRY_JOB_ENABLED: toBoolean(process.env.BOOKING_EXPIRY_JOB_ENABLED, true),
 
   PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER || 'sepay',
   PAYMENT_WEBHOOK_TOLERANCE_SECONDS: toInt(process.env.PAYMENT_WEBHOOK_TOLERANCE_SECONDS, 300),

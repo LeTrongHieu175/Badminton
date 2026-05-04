@@ -7,8 +7,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "migrate": "psql \"$DATABASE_URL\" -f src/db/schema.sql",
-    "seed": "psql \"$DATABASE_URL\" -f src/db/seed.sql",
+    "migrate": "node src/db/bootstrap.js migrate",
+    "seed": "node src/db/bootstrap.js seed",
+    "db:schema": "node src/db/bootstrap.js schema",
+    "db:migrate": "node src/db/bootstrap.js migrate",
+    "db:seed": "node src/db/bootstrap.js seed",
+    "db:setup": "node src/db/bootstrap.js setup",
+    "db:bootstrap": "node src/db/bootstrap.js bootstrap",
     "test": "jest --runInBand"
   },
   "engines": {

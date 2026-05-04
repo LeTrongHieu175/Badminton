@@ -116,9 +116,16 @@ Chọn một trong hai bộ script:
 - Bộ backend: `backend/src/db/schema.sql` + `backend/src/db/seed.sql`
 - Bộ tổng quát: `database/schema.sql` + `database/seed.sql`
 
-Ví dụ dùng bộ backend:
+Ví dụ nhanh nhất với script Node của backend:
 ```bash
+cd backend
+npm install
 export DATABASE_URL="postgres://postgres:postgres@localhost:5432/smart_badminton"
+npm run db:setup
+```
+
+Nếu muốn dùng `psql` thủ công, bạn vẫn có thể chạy:
+```bash
 psql "$DATABASE_URL" -f backend/src/db/schema.sql
 psql "$DATABASE_URL" -f backend/src/db/seed.sql
 ```
@@ -143,11 +150,7 @@ python3 -m uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 ```bash
 cd web
 npm install
-```
-
-Tạo `.env` cho web:
-```env
-VITE_API_URL=http://localhost:4000
+cp .env.example .env
 ```
 
 Chạy:
@@ -239,3 +242,245 @@ python3 -m py_compile main.py app/models/recommendation_model.py app/services/re
 
 - `web` có cơ chế fallback sang mock data nếu backend chưa sẵn sàng.
 - Biến môi trường `AI_SERVICE_BASE_URL` đã có trong `docker-compose.yml`, nhưng backend hiện chưa expose endpoint proxy AI; có thể gọi AI service trực tiếp từ frontend hoặc bổ sung endpoint backend sau.
+
+## Phụ lục A: Deploy Railway hoàn chỉnh
+
+### Mục tiêu
+
+Triển khai đầy đủ các thành phần:
+- `web`
+- `backend`
+- `ai`
+- `postgres`
+- `redis`
+
+Đây là cấu hình giữ nguyên hầu hết hành vi đang chạy local:
+- frontend public,
+- backend public,
+- AI service chạy thật,
+- Redis lock bật,
+- job hết hạn booking bật,
+- backend tự tạo schema và seed dữ liệu demo ở lần đầu.
+
+### Những gì repo đã hỗ trợ sẵn cho Railway
+
+- `backend` có [backend/railway.json](backend/railway.json) và env mẫu [backend/.env.railway.example](backend/.env.railway.example).
+- `web` có [web/railway.json](web/railway.json) và env mẫu [web/.env.railway.example](web/.env.railway.example).
+- `ai-service` có [ai-service/railway.json](ai-service/railway.json) và env mẫu [ai-service/.env.example](ai-service/.env.example).
+- Backend tự apply `schema.sql` lúc boot nếu `AUTO_APPLY_SCHEMA=true`.
+- Backend có thể seed dữ liệu demo lúc boot nếu `AUTO_RUN_SEED=true`.
+
+### Tên service nên dùng
+
+Để reference variables trong Railway hoạt động đúng như file mẫu, nên đặt đúng các tên:
+- `web`
+- `backend`
+- `ai`
+- `postgres`
+- `redis`
+
+### 1) Chuẩn bị repo
+
+```bash
+git add .
+git commit -m "prepare full railway deployment"
+git push
+```
+
+### 2) Tạo project Railway
+
+1. Vào `https://railway.com`
+2. Đăng nhập bằng GitHub
+3. Chọn `New Project`
+4. Tạo project trống hoặc import repo
+
+### 3) Thêm `postgres` và `redis`
+
+Trong cùng project:
+1. Bấm `+ New`
+2. Chọn `Database -> PostgreSQL`
+3. Đổi tên service thành `postgres`
+4. Lặp lại với `Database -> Redis`
+5. Đổi tên service thành `redis`
+
+Không cần tự nhập connection string nếu backend dùng reference variable tới `postgres.DATABASE_URL` và `redis.REDIS_URL`.
+
+### 4) Thêm `backend`
+
+1. Bấm `+ New`
+2. Chọn `GitHub Repo`
+3. Chọn repo này
+4. Đặt tên service là `backend`
+5. Vào `Settings`
+6. Đặt `Root Directory` là `/backend`
+7. Đặt config file là `/backend/railway.json`
+8. Trong `Variables`, copy nội dung từ [backend/.env.railway.example](backend/.env.railway.example)
+
+Biến quan trọng:
+
+```env
+PORT=4000
+NODE_ENV=production
+DATABASE_URL=${{postgres.DATABASE_URL}}
+REDIS_URL=${{redis.REDIS_URL}}
+REDIS_ENABLED=true
+BOOKING_EXPIRY_JOB_ENABLED=true
+AUTO_APPLY_SCHEMA=true
+AUTO_RUN_SEED=true
+AI_SERVICE_BASE_URL=http://${{ai.RAILWAY_PRIVATE_DOMAIN}}:${{ai.PORT}}
+APP_ORIGIN=https://${{web.RAILWAY_PUBLIC_DOMAIN}}
+SOCKET_CORS_ORIGIN=https://${{web.RAILWAY_PUBLIC_DOMAIN}}
+```
+
+Bạn cần thay thủ công ít nhất:
+
+```env
+JWT_SECRET=replace-with-a-long-random-secret
+SEPAY_API_KEY=...
+SEPAY_IPN_SECRET=...
+SEPAY_MERCHANT_CODE=...
+```
+
+### 5) Thêm `ai`
+
+1. Bấm `+ New`
+2. Chọn cùng repo GitHub
+3. Đặt tên service là `ai`
+4. Vào `Settings`
+5. Đặt `Root Directory` là `/ai-service`
+6. Đặt config file là `/ai-service/railway.json`
+7. Trong `Variables`, thêm tối thiểu:
+
+```env
+PORT=8001
+```
+
+Lưu ý:
+- `ai` không bắt buộc phải có public domain nếu chỉ backend gọi nội bộ.
+- Backend sẽ gọi AI qua private domain của Railway bằng `RAILWAY_PRIVATE_DOMAIN`.
+
+### 6) Deploy `backend` và `ai`
+
+1. Deploy `ai` trước
+2. Deploy `backend` sau
+
+Sau khi deploy backend:
+
+```bash
+curl https://<backend-domain>/health
+```
+
+Nếu chưa có domain thì tạo ở bước kế tiếp.
+
+### 7) Tạo public domain cho `backend`
+
+1. Mở service `backend`
+2. Vào `Settings -> Networking -> Public Networking`
+3. Bấm `Generate Domain`
+4. Railway sẽ cấp domain miễn phí dạng:
+
+```text
+https://backend-xxxx.up.railway.app
+```
+
+### 8) Thêm `web`
+
+1. Bấm `+ New`
+2. Chọn cùng repo GitHub
+3. Đặt tên service là `web`
+4. Vào `Settings`
+5. Đặt `Root Directory` là `/web`
+6. Đặt config file là `/web/railway.json`
+7. Trong `Variables`, copy nội dung từ [web/.env.railway.example](web/.env.railway.example)
+
+Biến chính:
+
+```env
+PORT=4173
+VITE_API_URL=https://${{backend.RAILWAY_PUBLIC_DOMAIN}}
+```
+
+### 9) Tạo public domain cho `web`
+
+1. Mở service `web`
+2. Vào `Settings -> Networking -> Public Networking`
+3. Bấm `Generate Domain`
+4. Railway sẽ cấp domain miễn phí dạng:
+
+```text
+https://web-xxxx.up.railway.app
+```
+
+Sau khi `web` đã có domain, Railway reference variable trong backend:
+
+```env
+APP_ORIGIN=https://${{web.RAILWAY_PUBLIC_DOMAIN}}
+SOCKET_CORS_ORIGIN=https://${{web.RAILWAY_PUBLIC_DOMAIN}}
+```
+
+sẽ resolve được. Khi đó redeploy `backend` một lần để chắc chắn CORS khớp domain frontend.
+
+### 10) Dòng chảy deploy khuyến nghị
+
+Thứ tự ít lỗi nhất:
+1. Tạo `postgres`
+2. Tạo `redis`
+3. Tạo `ai`
+4. Tạo `backend`
+5. Generate domain cho `backend`
+6. Tạo `web`
+7. Generate domain cho `web`
+8. Redeploy `backend`
+
+### 11) Kiểm tra sau deploy
+
+Backend:
+```bash
+curl https://<backend-domain>/health
+```
+
+AI nếu bạn có generate domain riêng:
+```bash
+curl https://<ai-domain>/health
+```
+
+Frontend:
+- mở `https://<web-domain>`
+- đăng nhập bằng tài khoản seed
+- vào danh sách sân để kiểm tra gợi ý AI
+- tạo booking thử
+- vào dashboard admin để kiểm tra analytics
+
+### 12) Tài khoản seed demo
+
+- `admin@smartbadminton.com / admin123`
+- `john@example.com / user123`
+
+### 13) Nếu dùng SePay webhook
+
+Dùng URL:
+
+```text
+https://<backend-domain>/payments/webhook
+```
+
+### 14) Checklist lỗi hay gặp
+
+- `web` build xong nhưng gọi API lỗi:
+  `backend` chưa có public domain hoặc `VITE_API_URL` chưa resolve đúng.
+- `backend` boot fail:
+  `JWT_SECRET` trống, `DATABASE_URL` reference sai, hoặc `ai` chưa deploy nhưng `AI_SERVICE_BASE_URL` đã trỏ vào private domain chưa tồn tại.
+- `AI unavailable` ở giao diện:
+  service `ai` chưa chạy hoặc `AI_SERVICE_BASE_URL` không đúng.
+- Booking tạo được nhưng lock không ổn định:
+  `redis` chưa sẵn sàng hoặc `REDIS_URL` chưa map đúng.
+
+## Phụ lục B: Muốn giữ chi phí thấp hơn
+
+Tính đến `May 5, 2026`, Railway `Free` là `$0/tháng` nhưng chỉ có `$1` credit/tháng sau trial `$5/30 ngày`. Với cấu hình đầy đủ `web + backend + ai + postgres + redis`, bạn nên coi đây là cấu hình demo ngắn hạn hoặc dùng plan trả phí.
+
+Nếu muốn tiết kiệm hơn:
+- giữ `web + backend + ai` trên Railway,
+- chuyển `postgres` sang Neon free,
+- chuyển `redis` sang Upstash free hoặc tắt Redis cho bản demo,
+- hoặc tắt `BOOKING_EXPIRY_JOB_ENABLED` khi chỉ cần demo UI/API.

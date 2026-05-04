@@ -5,8 +5,8 @@ const morgan = require('morgan');
 
 const { env } = require('./src/config/env');
 const { pool } = require('./src/config/db');
-const { connectRedis, redisClient } = require('./src/config/redis');
-const { runMigrations } = require('./src/db/migrate');
+const { connectRedis, closeRedis } = require('./src/config/redis');
+const { bootstrapDatabase } = require('./src/db/bootstrap');
 const { initSocket } = require('./src/sockets');
 const routes = require('./src/routes');
 const errorMiddleware = require('./src/middleware/error.middleware');
@@ -41,10 +41,10 @@ async function bootstrap() {
   const server = http.createServer(app);
   initSocket(server);
 
-  await runMigrations();
+  await bootstrapDatabase();
   await connectRedis();
 
-  server.listen(env.PORT, () => {
+  server.listen(env.PORT, '0.0.0.0', () => {
     console.log(`[server] listening on port ${env.PORT}`);
   });
 
@@ -56,9 +56,7 @@ async function bootstrap() {
 
     server.close(async () => {
       try {
-        if (redisClient.isOpen) {
-          await redisClient.quit();
-        }
+        await closeRedis();
       } catch (error) {
         console.error('[server] redis shutdown error', error);
       }
