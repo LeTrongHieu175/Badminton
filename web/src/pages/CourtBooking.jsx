@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import BookingModal from '../components/BookingModal';
 import { useCreateBooking } from '../hooks/useBookings';
 import { useCourt, useCourtAvailability } from '../hooks/useCourts';
@@ -8,7 +8,9 @@ import { getApiErrorMessage } from '../utils/errors';
 
 function CourtBooking() {
   const { id } = useParams();
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [searchParams] = useSearchParams();
+  const preferredSlotId = Number(searchParams.get('slotId') || 0);
+  const [date, setDate] = useState(() => searchParams.get('date') || new Date().toISOString().slice(0, 10));
   const [selectedSlot, setSelectedSlot] = useState(null);
 
   const { data: court, isError: isCourtError, error: courtError } = useCourt(id);
@@ -32,6 +34,17 @@ function CourtBooking() {
       { total: 0, available: 0 }
     );
   }, [slots]);
+
+  useEffect(() => {
+    if (!preferredSlotId || !slots.length) {
+      return;
+    }
+
+    const matchedSlot = slots.find((slot) => slot.id === preferredSlotId && slot.status === 'AVAILABLE');
+    if (matchedSlot) {
+      setSelectedSlot((current) => (current?.id === matchedSlot.id ? current : matchedSlot));
+    }
+  }, [preferredSlotId, slots]);
 
   const handleConfirmBooking = async () => {
     if (!selectedSlot) {
@@ -107,7 +120,9 @@ function CourtBooking() {
                 : 'cursor-not-allowed border-slate-200 bg-slate-100'
             }`}
           >
-            <p className='text-sm font-semibold text-slate-900'>{slot.label}</p>
+            <p className='text-sm font-semibold text-slate-900'>
+              {slot.startTime} - {slot.endTime}
+            </p>
             <p className='mt-1 text-xs text-slate-500'>{formatCurrencyFromVnd(slot.priceVnd)}</p>
             <span
               className={`mt-3 inline-block rounded-full px-2 py-1 text-xs font-semibold ${

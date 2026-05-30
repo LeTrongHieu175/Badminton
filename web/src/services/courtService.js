@@ -1,5 +1,9 @@
 import api, { unwrapPayload } from './api';
 
+function buildTimeLabel(startTime, endTime) {
+  return `${startTime} - ${endTime}`;
+}
+
 function normalizeCourt(court) {
   return {
     id: Number(court.id),
@@ -45,9 +49,9 @@ export async function getCourtAvailability(courtId, date) {
 
   return (payload.slots || []).map((slot) => ({
     id: Number(slot.slotId ?? slot.slot_id),
-    label: slot.label || `${slot.startTime || slot.start_time} - ${slot.endTime || slot.end_time}`,
     startTime: slot.startTime || slot.start_time,
     endTime: slot.endTime || slot.end_time,
+    label: buildTimeLabel(slot.startTime || slot.start_time, slot.endTime || slot.end_time),
     status: slot.status,
     priceVnd: Number(slot.priceVnd ?? slot.price_vnd ?? 0),
     bookingId: slot.bookingId ?? slot.booking_id ?? null,
@@ -62,22 +66,25 @@ export async function getCourtRecommendations(date) {
 
   const payload = unwrapPayload(response);
   return {
-    recommendedSlots: Array.isArray(payload.recommendedSlots)
-      ? payload.recommendedSlots.map((slot) => ({
+    recommendedOptions: Array.isArray(payload.recommendedOptions)
+      ? payload.recommendedOptions.map((slot) => ({
           courtId: Number(slot.courtId),
           courtName: slot.courtName,
           location: slot.location,
           slotId: Number(slot.slotId),
           startTime: slot.startTime,
           endTime: slot.endTime,
-          label: slot.label,
-          priceVnd: Number(slot.priceVnd)
+          label: slot.label || buildTimeLabel(slot.startTime, slot.endTime),
+          priceVnd: Number(slot.priceVnd),
+          score: Number(slot.score ?? 0),
+          reason: slot.reason || ''
         }))
       : [],
     recommendedCourtIds: Array.isArray(payload.recommendedCourtIds)
       ? payload.recommendedCourtIds.map((id) => Number(id))
       : [],
-    aiStatus: payload.aiStatus || 'unavailable'
+    aiStatus: payload.aiStatus || 'unavailable',
+    strategy: payload.strategy || 'fallback'
   };
 }
 

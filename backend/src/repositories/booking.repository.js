@@ -233,6 +233,40 @@ async function countBookingsByUserId(userId) {
   return result.rows[0].count;
 }
 
+async function listRecommendationHistoryByUserId(userId, { limit = 50 } = {}) {
+  const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 50;
+  const result = await pool.query(
+    `
+      SELECT
+        b.id,
+        b.user_id,
+        b.court_id,
+        b.slot_id,
+        b.booking_date,
+        b.status,
+        b.amount_vnd,
+        b.currency,
+        b.confirmed_at,
+        b.created_at,
+        c.name AS court_name,
+        c.location AS court_location,
+        s.start_time,
+        s.end_time,
+        s.price_vnd
+      FROM bookings b
+      JOIN courts c ON c.id = b.court_id
+      JOIN court_slots s ON s.id = b.slot_id
+      WHERE b.user_id = $1
+        AND b.status IN ('CONFIRMED', 'COMPLETED')
+      ORDER BY COALESCE(b.confirmed_at, b.created_at) DESC
+      LIMIT $2
+    `,
+    [userId, safeLimit]
+  );
+
+  return result.rows;
+}
+
 function buildAdminBookingFilters({ userId, userName, status, dateFrom, dateTo }) {
   const clauses = [];
   const values = [];
@@ -549,6 +583,7 @@ module.exports = {
   findBookingByIdForUpdate,
   listBookingsByUserId,
   countBookingsByUserId,
+  listRecommendationHistoryByUserId,
   listAllBookings,
   countAllBookings,
   cancelBooking,

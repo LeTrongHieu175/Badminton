@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { formatStatusLabel } from '../utils/formatters';
 
-function CourtCard({ court, recommended = false }) {
+function CourtCard({ court, recommended = false, date = '' }) {
   const isActive = Boolean(court.isActive);
+  const bookingHref = date ? `/courts/${court.id}/booking?date=${encodeURIComponent(date)}` : `/courts/${court.id}/booking`;
 
   return (
     <article
@@ -34,7 +35,7 @@ function CourtCard({ court, recommended = false }) {
       <div className='mt-4 flex items-center justify-between'>
         <p className='text-sm text-slate-600'>Khung giá linh hoạt theo từng khung giờ</p>
         <Link
-          to={`/courts/${court.id}/booking`}
+          to={bookingHref}
           className={`rounded-lg px-3 py-2 text-sm font-medium text-white ${
             isActive ? 'bg-brand-600 hover:bg-brand-700' : 'pointer-events-none bg-slate-400'
           }`}

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from app.services.recommendation_service import RecommendationService
 
@@ -23,6 +24,37 @@ DATASET_PATH = Path(__file__).resolve().parent / "app" / "dataset" / "booking_hi
 recommendation_service = RecommendationService(dataset_path=DATASET_PATH)
 
 
+class RecommendationUser(BaseModel):
+    id: int = Field(gt=0)
+
+
+class RecommendationSlot(BaseModel):
+    courtId: int = Field(gt=0)
+    courtName: str
+    location: str = ""
+    slotId: int = Field(gt=0)
+    startTime: str
+    endTime: str
+    priceVnd: float = Field(ge=0)
+
+
+class RecommendationHistoryItem(BaseModel):
+    bookingDate: str
+    dayOfWeek: str | None = None
+    courtId: int = Field(gt=0)
+    courtName: str | None = None
+    startTime: str
+    endTime: str
+    priceVnd: float = Field(ge=0)
+
+
+class RecommendationScoreRequest(BaseModel):
+    user: RecommendationUser
+    targetDate: str
+    availableSlots: list[RecommendationSlot]
+    history: list[RecommendationHistoryItem] = []
+
+
 @app.get("/health")
 def health_check() -> dict:
     return {
@@ -42,3 +74,13 @@ def get_recommendation(user_id: int) -> dict:
         raise HTTPException(status_code=500, detail=str(error)) from error
 
     return {"recommended_slots": recommended_slots}
+
+
+@app.post("/ai/recommendations/score")
+def score_recommendations(payload: RecommendationScoreRequest) -> dict:
+    try:
+        return recommendation_service.score_recommendations(payload.model_dump())
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except RuntimeError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error

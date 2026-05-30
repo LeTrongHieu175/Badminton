@@ -67,5 +67,6 @@ module.exports = {
   addSeconds,
   dateDiffInDaysInclusive,
   formatTimeHHmm,
+  normalizeISODateOnly,
   combineDateAndTime
 };
