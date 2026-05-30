@@ -16,8 +16,14 @@ const me = asyncHandler(async (req, res) => {
   return sendSuccess(res, result, 'User profile fetched');
 });
 
+const updateMe = asyncHandler(async (req, res) => {
+  const result = await authService.updateCurrentUser(req.user.id, req.body);
+  return sendSuccess(res, result, 'User profile updated successfully');
+});
+
 module.exports = {
   register,
   login,
-  me
+  me,
+  updateMe
 };

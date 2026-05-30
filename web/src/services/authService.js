@@ -34,3 +34,9 @@ export async function getCurrentUser() {
   const payload = unwrapPayload(response);
   return payload.user;
 }
+
+export async function updateCurrentUser(payload) {
+  const response = await api.patch('/auth/me', payload);
+  const data = unwrapPayload(response);
+  return data.user;
+}

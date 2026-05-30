@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { getCurrentUser, loginUser, registerUser } from '../services/authService';
+import { getCurrentUser, loginUser, registerUser, updateCurrentUser } from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -133,6 +133,24 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateProfile = async (payload) => {
+    setIsSubmitting(true);
+    try {
+      const apiUser = await updateCurrentUser(payload);
+      const normalizedUser = normalizeUser(apiUser);
+      const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (token) {
+        persistAuth(normalizedUser, token);
+      } else {
+        window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(normalizedUser));
+      }
+      setUser(normalizedUser);
+      return normalizedUser;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const value = useMemo(
     () => ({
       user,
@@ -142,6 +160,7 @@ export function AuthProvider({ children }) {
       isAdmin: user?.role === 'admin',
       login,
       register,
+      updateProfile,
       logout
     }),
     [user, isLoading, isSubmitting]
