@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createUser, deactivateUser, getUsers, updateUser } from '../../services/userService';
+import { createUser, deactivateUser, getUsers, resetUserPassword, updateUser } from '../../services/userService';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiErrorMessage } from '../../utils/errors';
 import { formatRoleLabel } from '../../utils/formatters';
@@ -45,8 +45,46 @@ function AdminUsers() {
     }
   });
 
-  const hasMutationError = createMutation.isError || updateMutation.isError || deactivateMutation.isError;
-  const mutationError = createMutation.error || updateMutation.error || deactivateMutation.error;
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ userId, password }) => resetUserPassword(userId, password),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    }
+  });
+
+  const hasMutationError =
+    createMutation.isError || updateMutation.isError || deactivateMutation.isError || resetPasswordMutation.isError;
+  const mutationError =
+    createMutation.error || updateMutation.error || deactivateMutation.error || resetPasswordMutation.error;
+
+  function handleResetPassword(user) {
+    const newPassword = window.prompt(`Nhập mật khẩu mới cho ${user.username}`, '');
+
+    if (newPassword === null) {
+      return;
+    }
+
+    if (newPassword.trim().length < 6) {
+      window.alert('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      return;
+    }
+
+    const confirmedPassword = window.prompt(`Nhập lại mật khẩu mới cho ${user.username}`, '');
+
+    if (confirmedPassword === null) {
+      return;
+    }
+
+    if (newPassword !== confirmedPassword) {
+      window.alert('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+
+    resetPasswordMutation.mutate({
+      userId: user.id,
+      password: newPassword
+    });
+  }
 
   return (
     <div className='space-y-4'>
@@ -191,6 +229,13 @@ function AdminUsers() {
                         className='rounded-lg border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700'
                       >
                         Sửa
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => handleResetPassword(user)}
+                        className='rounded-lg border border-amber-200 px-3 py-1 text-xs font-medium text-amber-700'
+                      >
+                        Đổi mật khẩu
                       </button>
                       <button
                         type='button'

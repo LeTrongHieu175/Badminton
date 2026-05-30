@@ -26,10 +26,16 @@ const updateRole = asyncHandler(async (req, res) => {
   return sendSuccess(res, user, 'User role updated successfully');
 });
 
+const resetPassword = asyncHandler(async (req, res) => {
+  const user = await userService.resetUserPassword(req.user, req.params.id, req.body.password);
+  return sendSuccess(res, user, 'User password reset successfully');
+});
+
 module.exports = {
   getUsers,
   createUser,
   updateUser,
   deleteUser,
-  updateRole
+  updateRole,
+  resetPassword
 };

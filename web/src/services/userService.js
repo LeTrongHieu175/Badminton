@@ -31,6 +31,11 @@ export async function updateUser(userId, payload) {
   return normalizeUser(unwrapPayload(response));
 }
 
+export async function resetUserPassword(userId, password) {
+  const response = await api.patch(`/users/${userId}/password`, { password });
+  return normalizeUser(unwrapPayload(response));
+}
+
 export async function deactivateUser(userId) {
   const response = await api.delete(`/users/${userId}`);
   return normalizeUser(unwrapPayload(response));

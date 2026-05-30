@@ -165,6 +165,22 @@ async function createUserByAdmin(payload) {
   return toAdminView(user);
 }
 
+async function buildPasswordUpdate(password) {
+  const normalizedPassword = String(password || '');
+
+  if (!normalizedPassword) {
+    throw new ApiError(400, 'password is required', 'VALIDATION_ERROR');
+  }
+
+  if (normalizedPassword.length < 6) {
+    throw new ApiError(400, 'Password must have at least 6 characters', 'VALIDATION_ERROR');
+  }
+
+  return {
+    passwordHash: await hashPassword(normalizedPassword)
+  };
+}
+
 async function updateUser(currentUser, targetUserId, payload) {
   const userId = parseUserId(targetUserId);
   const targetUser = await userRepository.findByIdWithAuth(userId);
@@ -215,12 +231,8 @@ async function updateUser(currentUser, targetUserId, payload) {
     updates.isActive = parseOptionalBoolean(payload.isActive, 'isActive');
   }
 
-  if (payload.password !== undefined && payload.password !== null && String(payload.password) !== '') {
-    const password = String(payload.password);
-    if (password.length < 6) {
-      throw new ApiError(400, 'Password must have at least 6 characters', 'VALIDATION_ERROR');
-    }
-    updates.passwordHash = await hashPassword(password);
+  if (payload.password !== undefined) {
+    Object.assign(updates, await buildPasswordUpdate(payload.password));
   }
 
   if (Object.keys(updates).length === 0) {
@@ -271,10 +283,25 @@ async function updateUserRole(currentUser, targetUserId, role) {
   return updateUser(currentUser, targetUserId, { role });
 }
 
+async function resetUserPassword(_currentUser, targetUserId, password) {
+  const userId = parseUserId(targetUserId);
+  const targetUser = await userRepository.findByIdWithAuth(userId);
+
+  if (!targetUser) {
+    throw new ApiError(404, 'User not found', 'USER_NOT_FOUND');
+  }
+
+  const updates = await buildPasswordUpdate(password);
+  const updatedUser = await userRepository.updateUser(userId, updates);
+
+  return toAdminView(updatedUser);
+}
+
 module.exports = {
   listUsers,
   createUserByAdmin,
   updateUser,
   deactivateUser,
-  updateUserRole
+  updateUserRole,
+  resetUserPassword
 };
