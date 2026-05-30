@@ -1,8 +1,25 @@
-const VND_CURRENCY_FORMATTER = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
-  maximumFractionDigits: 0
-});
+import { getRuntimeSystemSettings } from './systemSettings';
+
+const CURRENCY_CONFIG = {
+  VND: {
+    locale: 'vi-VN',
+    currency: 'VND',
+    rateFromVnd: 1,
+    maximumFractionDigits: 0
+  },
+  USD: {
+    locale: 'en-US',
+    currency: 'USD',
+    rateFromVnd: 25400,
+    maximumFractionDigits: 2
+  },
+  EUR: {
+    locale: 'de-DE',
+    currency: 'EUR',
+    rateFromVnd: 27750,
+    maximumFractionDigits: 2
+  }
+};
 
 const VI_NUMBER_FORMATTER = new Intl.NumberFormat('vi-VN');
 const VI_DATE_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
@@ -30,11 +47,19 @@ const ROLE_LABELS = {
 };
 
 export function formatCurrencyVnd(amount) {
-  return VND_CURRENCY_FORMATTER.format(Number(amount || 0));
+  return formatCurrencyFromVnd(amount, 'VND');
 }
 
-export function formatCurrencyFromVnd(vnd) {
-  return formatCurrencyVnd(vnd);
+export function formatCurrencyFromVnd(vnd, currency = getRuntimeSystemSettings().displayCurrency) {
+  const normalizedCurrency = String(currency || 'VND').toUpperCase();
+  const config = CURRENCY_CONFIG[normalizedCurrency] || CURRENCY_CONFIG.VND;
+  const convertedAmount = Number(vnd || 0) / config.rateFromVnd;
+
+  return new Intl.NumberFormat(config.locale, {
+    style: 'currency',
+    currency: config.currency,
+    maximumFractionDigits: config.maximumFractionDigits
+  }).format(convertedAmount);
 }
 
 export function formatNumberVi(value) {

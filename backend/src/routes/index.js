@@ -10,10 +10,12 @@ const paymentRoutes = require('./payment.routes');
 const analyticsRoutes = require('./analytics.routes');
 const userRoutes = require('./user.routes');
 const recommendationRoutes = require('./recommendation.routes');
+const settingsRoutes = require('./settings.routes');
 
 const router = express.Router();
 
 router.use('/auth', authRoutes);
+router.use('/settings', settingsRoutes);
 router.use('/courts', authMiddleware, courtRoutes);
 router.use('/bookings', authMiddleware, bookingRoutes);
 router.use('/payments', paymentRoutes);

@@ -10,6 +10,7 @@ const slotRepository = require('../repositories/slot.repository');
 const bookingRepository = require('../repositories/booking.repository');
 const paymentRepository = require('../repositories/payment.repository');
 const lockService = require('./lock.service');
+const settingsService = require('./settings.service');
 const { emitSlotUpdated } = require('../sockets/booking.socket');
 
 const REFUND_RATE = 0.7;
@@ -88,7 +89,7 @@ async function createBooking(currentUser, { courtId, slotId, date }) {
 
   const lockKey = lockService.buildLockKey(normalizedCourtId, normalizedSlotId, bookingDate);
   const lockToken = lockService.createLockToken(currentUser.id);
-  const lockTtl = env.BOOKING_LOCK_TTL_SECONDS;
+  const lockTtl = await settingsService.getBookingHoldSeconds();
   const lockExpiresAt = addSeconds(new Date(), lockTtl);
 
   const lockAcquired = await lockService.acquireLock(lockKey, lockToken, lockTtl);

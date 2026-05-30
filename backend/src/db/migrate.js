@@ -139,6 +139,23 @@ async function runMigrations() {
     ALTER COLUMN currency SET DEFAULT 'VND'
   `);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      display_currency CHAR(3) NOT NULL DEFAULT 'VND',
+      booking_hold_minutes INTEGER NOT NULL DEFAULT 10 CHECK (booking_hold_minutes >= 1 AND booking_hold_minutes <= 120),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await query(
+    `
+      INSERT INTO app_settings (id, display_currency, booking_hold_minutes, updated_at)
+      VALUES (1, 'VND', 10, NOW())
+      ON CONFLICT (id) DO NOTHING
+    `
+  );
+
   await query(
     `
       UPDATE users

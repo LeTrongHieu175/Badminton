@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { formatCurrencyFromVnd } from '../utils/formatters';
+import { formatCurrencyFromVnd, formatCurrencyVnd } from '../utils/formatters';
 
 function toCountdownText(target) {
   if (!target) {
@@ -55,7 +55,10 @@ function PaymentModal({ open, paymentInfo, onClose }) {
 
         <div className='mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700'>
           <p>
-            <span className='font-semibold'>Số tiền:</span> {formatCurrencyFromVnd(paymentInfo.amountVnd)}
+            <span className='font-semibold'>Số tiền hiển thị:</span> {formatCurrencyFromVnd(paymentInfo.amountVnd)}
+          </p>
+          <p className='mt-1'>
+            <span className='font-semibold'>Số tiền chuyển khoản thực tế:</span> {formatCurrencyVnd(paymentInfo.amountVnd)}
           </p>
           <p className='mt-1'>
             <span className='font-semibold'>Ngân hàng:</span> {paymentInfo.bankName}
