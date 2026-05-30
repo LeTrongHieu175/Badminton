@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCourt, useCourts } from '../../hooks/useCourts';
 import {
@@ -17,9 +17,24 @@ function AdminCourts() {
   const [selectedCourtId, setSelectedCourtId] = useState(null);
   const [courtForm, setCourtForm] = useState({ name: '', location: '' });
   const [slotForm, setSlotForm] = useState({ label: '', startTime: '', endTime: '', priceVnd: '' });
+  const [slotPriceDrafts, setSlotPriceDrafts] = useState({});
 
   const { data: courts = [], isLoading, isError, error } = useCourts({ includeInactive: true });
   const { data: selectedCourt } = useCourt(selectedCourtId);
+
+  useEffect(() => {
+    if (!selectedCourt?.slots) {
+      setSlotPriceDrafts({});
+      return;
+    }
+
+    setSlotPriceDrafts(
+      selectedCourt.slots.reduce((acc, slot) => {
+        acc[slot.id] = String(slot.priceVnd);
+        return acc;
+      }, {})
+    );
+  }, [selectedCourt]);
 
   const createCourtMutation = useMutation({
     mutationFn: createCourt,
@@ -86,6 +101,26 @@ function AdminCourts() {
     createSlotMutation.error ||
     updateSlotMutation.error ||
     deleteSlotMutation.error;
+
+  function handleSlotPriceDraftChange(slotId, value) {
+    setSlotPriceDrafts((prev) => ({
+      ...prev,
+      [slotId]: value
+    }));
+  }
+
+  function handleSlotPriceSave(slot) {
+    const draftValue = Number(slotPriceDrafts[slot.id]);
+    if (!Number.isInteger(draftValue) || draftValue <= 0 || draftValue === slot.priceVnd) {
+      return;
+    }
+
+    updateSlotMutation.mutate({
+      courtId: selectedCourt.id,
+      slotId: slot.id,
+      payload: { priceVnd: draftValue }
+    });
+  }
 
   return (
     <div className='space-y-4'>
@@ -293,12 +328,36 @@ function AdminCourts() {
                     <td className='px-4 py-3 text-slate-700'>
                       {slot.startTime} - {slot.endTime}
                     </td>
-                    <td className='px-4 py-3 text-slate-700'>{formatCurrencyFromVnd(slot.priceVnd)}</td>
+                    <td className='px-4 py-3'>
+                      <div className='flex flex-col gap-2'>
+                        <input
+                          type='number'
+                          min='1'
+                          value={slotPriceDrafts[slot.id] ?? ''}
+                          onChange={(event) => handleSlotPriceDraftChange(slot.id, event.target.value)}
+                          className='w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700'
+                        />
+                        <p className='text-xs text-slate-500'>{formatCurrencyFromVnd(slot.priceVnd)}</p>
+                      </div>
+                    </td>
                     <td className='px-4 py-3 text-slate-700'>
                       {slot.isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa'}
                     </td>
                     <td className='px-4 py-3'>
                       <div className='flex flex-wrap gap-2'>
+                        <button
+                          type='button'
+                          onClick={() => handleSlotPriceSave(slot)}
+                          disabled={
+                            updateSlotMutation.isPending ||
+                            !Number.isInteger(Number(slotPriceDrafts[slot.id])) ||
+                            Number(slotPriceDrafts[slot.id]) <= 0 ||
+                            Number(slotPriceDrafts[slot.id]) === slot.priceVnd
+                          }
+                          className='rounded-lg bg-brand-600 px-3 py-1 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-60'
+                        >
+                          Lưu giá
+                        </button>
                         <button
                           type='button'
                           onClick={() =>
@@ -308,14 +367,13 @@ function AdminCourts() {
                               payload: {
                                 label: window.prompt('Nhãn mới', slot.label || '') || slot.label,
                                 startTime: window.prompt('Giờ bắt đầu (HH:mm)', slot.startTime) || slot.startTime,
-                                endTime: window.prompt('Giờ kết thúc (HH:mm)', slot.endTime) || slot.endTime,
-                                priceVnd: Number(window.prompt('Giá mới (VND)', String(slot.priceVnd)) || slot.priceVnd)
+                                endTime: window.prompt('Giờ kết thúc (HH:mm)', slot.endTime) || slot.endTime
                               }
                             })
                           }
                           className='rounded-lg border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700'
                         >
-                          Sửa
+                          Sửa khung giờ
                         </button>
                         <button
                           type='button'
