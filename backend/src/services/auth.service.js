@@ -215,9 +215,53 @@ async function updateCurrentUser(userId, payload) {
   };
 }
 
+async function changeCurrentUserPassword(userId, payload) {
+  const user = await userRepository.findByIdWithAuth(userId);
+  if (!user) {
+    throw new ApiError(404, 'User not found', 'USER_NOT_FOUND');
+  }
+
+  if (!user.is_active) {
+    throw new ApiError(403, 'User account is deactivated', 'USER_DEACTIVATED');
+  }
+
+  const currentPassword = String(payload.currentPassword || '');
+  const newPassword = String(payload.newPassword || '');
+  const confirmPassword = String(payload.confirmPassword || '');
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    throw new ApiError(400, 'currentPassword, newPassword, and confirmPassword are required', 'VALIDATION_ERROR');
+  }
+
+  const validPassword = await comparePassword(currentPassword, user.password_hash);
+  if (!validPassword) {
+    throw new ApiError(401, 'Current password is incorrect', 'INVALID_CREDENTIALS');
+  }
+
+  if (newPassword.length < 6) {
+    throw new ApiError(400, 'New password must have at least 6 characters', 'VALIDATION_ERROR');
+  }
+
+  if (newPassword !== confirmPassword) {
+    throw new ApiError(400, 'Password confirmation does not match', 'VALIDATION_ERROR');
+  }
+
+  if (currentPassword === newPassword) {
+    throw new ApiError(400, 'New password must be different from current password', 'VALIDATION_ERROR');
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  await userRepository.updateUser(user.id, { passwordHash });
+
+  return {
+    success: true
+  };
+}
+
 module.exports = {
   register,
   login,
   getCurrentUser,
-  updateCurrentUser
+  updateCurrentUser,
+  changeCurrentUserPassword
 };

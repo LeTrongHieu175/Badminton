@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { getCurrentUser, loginUser, registerUser, updateCurrentUser } from '../services/authService';
+import { changeCurrentUserPassword, getCurrentUser, loginUser, registerUser, updateCurrentUser } from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -151,6 +151,15 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const changePassword = async (payload) => {
+    setIsSubmitting(true);
+    try {
+      return await changeCurrentUserPassword(payload);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const value = useMemo(
     () => ({
       user,
@@ -161,6 +170,7 @@ export function AuthProvider({ children }) {
       login,
       register,
       updateProfile,
+      changePassword,
       logout
     }),
     [user, isLoading, isSubmitting]

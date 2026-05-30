@@ -8,5 +8,6 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/me', authMiddleware, authController.me);
 router.patch('/me', authMiddleware, authController.updateMe);
+router.patch('/me/password', authMiddleware, authController.changeMyPassword);
 
 module.exports = router;

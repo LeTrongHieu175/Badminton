@@ -21,9 +21,15 @@ const updateMe = asyncHandler(async (req, res) => {
   return sendSuccess(res, result, 'User profile updated successfully');
 });
 
+const changeMyPassword = asyncHandler(async (req, res) => {
+  const result = await authService.changeCurrentUserPassword(req.user.id, req.body);
+  return sendSuccess(res, result, 'Password updated successfully');
+});
+
 module.exports = {
   register,
   login,
   me,
-  updateMe
+  updateMe,
+  changeMyPassword
 };

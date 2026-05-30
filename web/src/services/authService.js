@@ -40,3 +40,8 @@ export async function updateCurrentUser(payload) {
   const data = unwrapPayload(response);
   return data.user;
 }
+
+export async function changeCurrentUserPassword(payload) {
+  const response = await api.patch('/auth/me/password', payload);
+  return unwrapPayload(response);
+}
