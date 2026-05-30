@@ -9,8 +9,6 @@ const PAGE_TITLES = {
   '/admin/courts': 'Quản lý sân',
   '/admin/bookings': 'Đơn đặt sân',
   '/admin/users': 'Người dùng',
-  '/admin/analytics': 'Phân tích',
-  '/admin/ai-insights': 'Gợi ý AI',
   '/admin/settings': 'Cài đặt'
 };
 

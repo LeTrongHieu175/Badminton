@@ -6,8 +6,6 @@ const ADMIN_MENU = [
   { label: 'Quản lý sân', to: '/admin/courts' },
   { label: 'Đơn đặt sân', to: '/admin/bookings' },
   { label: 'Người dùng', to: '/admin/users' },
-  { label: 'Phân tích', to: '/admin/analytics' },
-  { label: 'Gợi ý AI', to: '/admin/ai-insights' },
   { label: 'Cài đặt', to: '/admin/settings' }
 ];
 

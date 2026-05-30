@@ -11,8 +11,6 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminCourts from './pages/admin/AdminCourts';
 import AdminBookings from './pages/admin/AdminBookings';
 import AdminUsers from './pages/admin/AdminUsers';
-import AdminAnalytics from './pages/admin/AdminAnalytics';
-import AdminAIInsights from './pages/admin/AdminAIInsights';
 import AdminSettings from './pages/admin/AdminSettings';
 import { useAuth } from './contexts/AuthContext';
 
@@ -82,8 +80,8 @@ function App() {
         <Route path='courts' element={<AdminCourts />} />
         <Route path='bookings' element={<AdminBookings />} />
         <Route path='users' element={<AdminUsers />} />
-        <Route path='analytics' element={<AdminAnalytics />} />
-        <Route path='ai-insights' element={<AdminAIInsights />} />
+        <Route path='analytics' element={<Navigate to='/admin' replace />} />
+        <Route path='ai-insights' element={<Navigate to='/admin' replace />} />
         <Route path='settings' element={<AdminSettings />} />
       </Route>
 

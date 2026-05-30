@@ -3,6 +3,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -25,6 +26,30 @@ function heatColor(demand) {
   return '#99f6e4';
 }
 
+function getSeverityClasses(severity) {
+  if (severity === 'high') {
+    return 'border-rose-200 bg-rose-50 text-rose-700';
+  }
+
+  if (severity === 'medium') {
+    return 'border-amber-200 bg-amber-50 text-amber-700';
+  }
+
+  return 'border-sky-200 bg-sky-50 text-sky-700';
+}
+
+function getPriorityBadge(priority) {
+  if (priority === 'high') {
+    return 'bg-rose-100 text-rose-700';
+  }
+
+  if (priority === 'low') {
+    return 'bg-sky-100 text-sky-700';
+  }
+
+  return 'bg-amber-100 text-amber-700';
+}
+
 function AdminDashboard() {
   const { data, isLoading, isError, error } = useAdminDashboard();
 
@@ -40,7 +65,12 @@ function AdminDashboard() {
     );
   }
 
-  const { stats, revenue, utilization, peakHours, recentBookings } = data;
+  const { stats, charts, alerts, aiInsights, recentBookings } = data;
+  const mergedSeries = charts.revenue.map((point, index) => ({
+    period: point.period,
+    revenueVnd: point.revenueVnd,
+    utilization: charts.utilization[index % Math.max(charts.utilization.length, 1)]?.usage || 0
+  }));
 
   return (
     <div className='space-y-6'>
@@ -58,7 +88,7 @@ function AdminDashboard() {
       <section className='grid gap-4 xl:grid-cols-2'>
         <ChartCard title='Doanh thu theo ngày' subtitle='Dữ liệu thực từ hệ thống'>
           <ResponsiveContainer width='100%' height='100%'>
-            <LineChart data={revenue}>
+            <LineChart data={charts.revenue}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
               <XAxis dataKey='period' tick={{ fontSize: 12 }} stroke='#94a3b8' />
               <YAxis tick={{ fontSize: 12 }} stroke='#94a3b8' />
@@ -70,7 +100,7 @@ function AdminDashboard() {
 
         <ChartCard title='Tỷ lệ sử dụng theo sân' subtitle='So sánh hiệu suất từng sân'>
           <ResponsiveContainer width='100%' height='100%'>
-            <BarChart data={utilization}>
+            <BarChart data={charts.utilization}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
               <XAxis dataKey='court' tick={{ fontSize: 12 }} stroke='#94a3b8' />
               <YAxis tick={{ fontSize: 12 }} stroke='#94a3b8' />
@@ -84,19 +114,90 @@ function AdminDashboard() {
       <section>
         <ChartCard title='Nhu cầu theo khung giờ' subtitle='Phát hiện giờ cao điểm theo dữ liệu đặt sân'>
           <ResponsiveContainer width='100%' height='100%'>
-            <BarChart data={peakHours}>
+            <BarChart data={charts.peakHours}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
               <XAxis dataKey='hour' tick={{ fontSize: 11 }} stroke='#94a3b8' />
               <YAxis tick={{ fontSize: 12 }} stroke='#94a3b8' />
               <Tooltip formatter={(value) => `${value} lượt`} />
               <Bar dataKey='demand' radius={[6, 6, 0, 0]}>
-                {peakHours.map((entry) => (
+                {charts.peakHours.map((entry) => (
                   <Cell key={entry.hour} fill={heatColor(entry.demand)} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
+      </section>
+
+      <section className='grid gap-4 xl:grid-cols-[1.1fr_0.9fr]'>
+        <ChartCard title='Tương quan doanh thu và công suất' subtitle='Theo dõi nhịp vận hành trên cùng một đồ thị'>
+          <ResponsiveContainer width='100%' height='100%'>
+            <LineChart data={mergedSeries}>
+              <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
+              <XAxis dataKey='period' tick={{ fontSize: 12 }} stroke='#94a3b8' />
+              <YAxis yAxisId='left' tick={{ fontSize: 12 }} stroke='#94a3b8' />
+              <YAxis yAxisId='right' orientation='right' tick={{ fontSize: 12 }} stroke='#94a3b8' />
+              <Tooltip
+                formatter={(value, key) => {
+                  if (key === 'revenueVnd') {
+                    return formatCurrencyFromVnd(value);
+                  }
+                  return `${value}%`;
+                }}
+              />
+              <Legend formatter={(value) => (value === 'revenueVnd' ? 'Doanh thu' : 'Công suất (%)')} />
+              <Line yAxisId='left' type='monotone' dataKey='revenueVnd' stroke='#0d9488' strokeWidth={3} dot={false} />
+              <Line yAxisId='right' type='monotone' dataKey='utilization' stroke='#0284c7' strokeWidth={3} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <section className='surface-card p-5'>
+          <div className='flex items-start justify-between gap-4'>
+            <div>
+              <h2 className='text-base font-semibold text-slate-900'>Tóm tắt AI</h2>
+              <p className='mt-1 text-xs text-slate-500'>
+                {aiInsights.status === 'ok'
+                  ? 'Được sinh từ AI workflow ở backend.'
+                  : 'AI hiện không sẵn sàng, đang dùng khuyến nghị fallback.'}
+              </p>
+            </div>
+            <span className='rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600'>
+              {aiInsights.status === 'ok' ? 'AI hoạt động' : 'Fallback'}
+            </span>
+          </div>
+
+          <p className='mt-4 text-sm leading-6 text-slate-600'>{aiInsights.summary}</p>
+
+          <div className='mt-5 space-y-3'>
+            {aiInsights.recommendations.map((item) => (
+              <article key={`${item.title}-${item.action}`} className='rounded-2xl border border-slate-200 bg-slate-50 p-4'>
+                <div className='flex items-center justify-between gap-3'>
+                  <h3 className='text-sm font-semibold text-slate-900'>{item.title}</h3>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase ${getPriorityBadge(item.priority)}`}>
+                    {item.priority}
+                  </span>
+                </div>
+                <p className='mt-2 text-sm text-slate-600'>{item.reason}</p>
+                <p className='mt-2 text-sm font-medium text-slate-800'>{item.action}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      </section>
+
+      <section className='surface-card p-5'>
+        <h2 className='text-base font-semibold text-slate-900'>Cảnh báo vận hành</h2>
+        <p className='mt-1 text-xs text-slate-500'>Các tín hiệu cần xử lý hoặc theo dõi trong chu kỳ hiện tại.</p>
+        <div className='mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4'>
+          {alerts.map((alert) => (
+            <article key={`${alert.type}-${alert.title}`} className={`rounded-2xl border p-4 ${getSeverityClasses(alert.severity)}`}>
+              <p className='text-xs font-semibold uppercase tracking-[0.18em]'>{alert.severity}</p>
+              <h3 className='mt-2 text-sm font-semibold'>{alert.title}</h3>
+              <p className='mt-2 text-sm'>{alert.message}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className='surface-card p-5'>

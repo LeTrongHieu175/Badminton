@@ -1,9 +1,11 @@
 const express = require('express');
 const analyticsController = require('../controllers/analytics.controller');
+const adminOverviewController = require('../controllers/admin-overview.controller');
 const { requireQueryFields } = require('../middleware/validate.middleware');
 
 const router = express.Router();
 
+router.get('/overview', adminOverviewController.getOverview);
 router.get('/summary', analyticsController.getSummary);
 router.get('/revenue', requireQueryFields(['start_date', 'end_date']), analyticsController.getRevenue);
 router.get('/peak-hours', requireQueryFields(['start_date', 'end_date']), analyticsController.getPeakHours);
