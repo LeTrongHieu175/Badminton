@@ -216,7 +216,14 @@ class RecommendationService:
         time_score: float,
         day_score: float,
         price_score: float,
+        global_score: float,
     ) -> str:
+        if not has_history:
+            if global_score >= 0.5:
+                return f"Khung giờ {slot['label']} hiện đang được nhiều người chơi lựa chọn."
+
+            return f"Khung giờ {slot['label']} dễ đặt và phù hợp để bạn bắt đầu."
+
         if court_time_score >= 0.6 and court_time_count > 0:
             return (
                 f"Bạn thường chơi {slot['courtName']} trong khung giờ "
@@ -288,5 +295,6 @@ class RecommendationService:
                 time_score=time_score,
                 day_score=day_score,
                 price_score=price_score,
+                global_score=global_score,
             ),
         }
