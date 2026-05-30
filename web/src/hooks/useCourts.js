@@ -14,18 +14,22 @@ export function useCourts(options = {}) {
 }
 
 export function useCourt(courtId) {
+  const normalizedCourtId = Number(courtId);
+
   return useQuery({
-    queryKey: ['court', courtId],
-    queryFn: () => getCourtById(courtId),
-    enabled: Boolean(courtId)
+    queryKey: ['court', normalizedCourtId],
+    queryFn: () => getCourtById(normalizedCourtId),
+    enabled: Number.isFinite(normalizedCourtId) && normalizedCourtId > 0
   });
 }
 
 export function useCourtAvailability(courtId, date) {
+  const normalizedCourtId = Number(courtId);
+
   return useQuery({
-    queryKey: ['availability', courtId, date],
-    queryFn: () => getCourtAvailability(courtId, date),
-    enabled: Boolean(courtId && date)
+    queryKey: ['availability', normalizedCourtId, date],
+    queryFn: () => getCourtAvailability(normalizedCourtId, date),
+    enabled: Number.isFinite(normalizedCourtId) && normalizedCourtId > 0 && Boolean(date)
   });
 }
 
