@@ -211,13 +211,17 @@ class RecommendationService:
         *,
         has_history: bool,
         court_time_score: float,
+        court_time_count: int,
         court_score: float,
         time_score: float,
         day_score: float,
         price_score: float,
     ) -> str:
-        if court_time_score >= 0.6:
-            return f"Bạn thường chơi {slot['courtName']} trong khung giờ {slot['label']}."
+        if court_time_score >= 0.6 and court_time_count > 0:
+            return (
+                f"Bạn thường chơi {slot['courtName']} trong khung giờ "
+                f"{slot['label']} {court_time_count} lần."
+            )
 
         if court_score >= 0.65 and time_score >= 0.45:
             return (
@@ -245,10 +249,12 @@ class RecommendationService:
         target_day: str,
         has_history: bool,
     ) -> dict[str, Any]:
+        court_time_key = _build_court_time_key(slot["courtId"], slot["startTime"], slot["endTime"])
         court_time_score = _normalized_counter_value(
             history_stats["court_time_counts"],
-            _build_court_time_key(slot["courtId"], slot["startTime"], slot["endTime"]),
+            court_time_key,
         )
+        court_time_count = history_stats["court_time_counts"].get(court_time_key, 0)
         court_score = _normalized_counter_value(history_stats["court_counts"], slot["courtId"])
         time_score = _normalized_counter_value(
             history_stats["time_counts"],
@@ -277,6 +283,7 @@ class RecommendationService:
                 slot,
                 has_history=has_history,
                 court_time_score=court_time_score,
+                court_time_count=court_time_count,
                 court_score=court_score,
                 time_score=time_score,
                 day_score=day_score,

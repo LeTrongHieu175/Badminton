@@ -137,9 +137,9 @@ function scorePrimeTime(startTime) {
   return clampScore(1 - Math.min(Math.abs(hour - 19) / 12, 1));
 }
 
-function buildReason(slot, { courtTimeScore, courtScore, timeScore, dayScore, priceScore, hasHistory }) {
-  if (courtTimeScore >= 0.6) {
-    return `Bạn thường chơi ${slot.courtName} trong khung giờ ${slot.label}.`;
+function buildReason(slot, { courtTimeScore, courtTimeCount, courtScore, timeScore, dayScore, priceScore, hasHistory }) {
+  if (courtTimeScore >= 0.6 && courtTimeCount > 0) {
+    return `Bạn thường chơi ${slot.courtName} trong khung giờ ${slot.label} ${courtTimeCount} lần.`;
   }
 
   if (courtScore >= 0.65 && timeScore >= 0.45) {
@@ -162,10 +162,12 @@ function buildReason(slot, { courtTimeScore, courtScore, timeScore, dayScore, pr
 }
 
 function scoreFallbackOption(slot, historyStats, targetDay, availableSlots) {
+  const courtTimeKey = buildCourtTimeKey(slot.courtId, slot.startTime, slot.endTime);
   const courtTimeScore = getNormalizedCount(
     historyStats.courtTimeCounts,
-    buildCourtTimeKey(slot.courtId, slot.startTime, slot.endTime)
+    courtTimeKey
   );
+  const courtTimeCount = historyStats.courtTimeCounts.get(courtTimeKey) || 0;
   const courtScore = getNormalizedCount(historyStats.courtCounts, slot.courtId);
   const timeScore = getNormalizedCount(historyStats.timeCounts, buildTimeKey(slot.startTime, slot.endTime));
   const dayScore = getNormalizedCount(historyStats.dayCounts, targetDay);
@@ -180,7 +182,7 @@ function scoreFallbackOption(slot, historyStats, targetDay, availableSlots) {
     ...slot,
     score: Number(totalScore.toFixed(4)),
     reason: hasHistory
-      ? buildReason(slot, { courtTimeScore, courtScore, timeScore, dayScore, priceScore, hasHistory })
+      ? buildReason(slot, { courtTimeScore, courtTimeCount, courtScore, timeScore, dayScore, priceScore, hasHistory })
       : `Khung giờ ${slot.label} dễ tiếp cận cho người chơi mới và còn trống để đặt ngay.`
   };
 }

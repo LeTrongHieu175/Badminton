@@ -164,5 +164,6 @@ describe('recommendation service', () => {
       'Court A:17:00 - 18:00',
       'Court B:19:00 - 20:00'
     ]);
+    expect(result.recommendedOptions[0].reason).toContain('2 lần');
   });
 });
