@@ -58,11 +58,23 @@ function CourtList() {
     return [...new Set(recommendedOptions.map((option) => option.courtId))];
   }, [recommendedOptions]);
 
-  const remainingCourts = useMemo(() => {
+  const visibleCourts = useMemo(() => {
     return courts
       .filter((court) => matchesSearch(court.name, court.location, needle))
-      .filter((court) => !recommendedCourtIds.includes(court.id))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => {
+        const aRecommended = recommendedCourtIds.includes(a.id);
+        const bRecommended = recommendedCourtIds.includes(b.id);
+
+        if (aRecommended && !bRecommended) {
+          return -1;
+        }
+
+        if (!aRecommended && bRecommended) {
+          return 1;
+        }
+
+        return a.name.localeCompare(b.name);
+      });
   }, [courts, needle, recommendedCourtIds]);
 
   return (
@@ -170,20 +182,25 @@ function CourtList() {
       {!isCourtsLoading && !isCourtsError ? (
         <section className='space-y-4'>
           <div className='surface-card p-5'>
-            <h3 className='text-lg font-semibold text-slate-900'>Các sân còn lại</h3>
+            <h3 className='text-lg font-semibold text-slate-900'>Tất cả sân</h3>
             <p className='mt-1 text-sm text-slate-600'>
-              Duyệt toàn bộ sân chưa được đẩy lên khối AI để tự chọn khung giờ phù hợp.
+              Khối này luôn hiển thị đầy đủ sân để bạn có thể vào đúng sân mong muốn và chọn khung giờ khác.
             </p>
           </div>
 
-          {remainingCourts.length === 0 ? (
+          {visibleCourts.length === 0 ? (
             <div className='rounded-xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500'>
-              Không còn sân nào khác phù hợp với bộ lọc hiện tại.
+              Không có sân phù hợp với bộ lọc hiện tại.
             </div>
           ) : (
             <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
-              {remainingCourts.map((court) => (
-                <CourtCard key={court.id} court={court} date={date} />
+              {visibleCourts.map((court) => (
+                <CourtCard
+                  key={court.id}
+                  court={court}
+                  recommended={recommendedCourtIds.includes(court.id)}
+                  date={date}
+                />
               ))}
             </div>
           )}
