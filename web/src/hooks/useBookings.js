@@ -37,7 +37,24 @@ export function useCreateBooking() {
 
   return useMutation({
     mutationFn: createBooking,
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(['availability', variables.courtId, variables.date], (currentSlots = []) => {
+        if (!Array.isArray(currentSlots)) {
+          return currentSlots;
+        }
+
+        return currentSlots.map((slot) =>
+          slot.id === variables.slotId
+            ? {
+                ...slot,
+                status: 'LOCKED',
+                bookingId: data.id,
+                lockExpiresAt: data.lockExpiresAt ?? slot.lockExpiresAt ?? null
+              }
+            : slot
+        );
+      });
+
       queryClient.invalidateQueries({ queryKey: ['availability', variables.courtId, variables.date] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['court-recommendations', variables.date] });
