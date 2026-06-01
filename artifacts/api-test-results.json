@@ -1,0 +1,450 @@
+{
+  "TC_AUTH_01": {
+    "actual": "HTTP 200; user=john@example.com; accessToken tồn tại",
+    "status": "Pass"
+  },
+  "TC_AUTH_02": {
+    "actual": "HTTP 200; role=admin; email=admin@smartbadminton.com",
+    "status": "Pass"
+  },
+  "TC_AUTH_03": {
+    "actual": "HTTP 200; username=john_2; đăng nhập bằng username hiện tại thành công",
+    "status": "Pass"
+  },
+  "TC_AUTH_04": {
+    "actual": "HTTP 401; code=INVALID_CREDENTIALS; message=Invalid credentials",
+    "status": "Pass"
+  },
+  "TC_AUTH_05": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=identifier and password are required",
+    "status": "Pass"
+  },
+  "TC_AUTH_06": {
+    "actual": "HTTP 201; created user=run1780297823674_auth@example.com; accessToken cấp ngay sau đăng ký",
+    "status": "Pass"
+  },
+  "TC_AUTH_07": {
+    "actual": "HTTP 409; code=EMAIL_EXISTS",
+    "status": "Pass"
+  },
+  "TC_AUTH_08": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=phone must be 8-20 chars and only digits/+()/ -",
+    "status": "Pass"
+  },
+  "TC_AUTH_09": {
+    "actual": "HTTP 200; current user=john@example.com; role=user",
+    "status": "Pass"
+  },
+  "TC_AUTH_11": {
+    "actual": "HTTP 403; code=FORBIDDEN",
+    "status": "Pass"
+  },
+  "TC_PROF_01": {
+    "actual": "HTTP 200; username=run1780297823674_auth; email=run1780297823674_auth@example.com; phone=0917823894",
+    "status": "Pass"
+  },
+  "TC_PROF_02": {
+    "actual": "HTTP 200; username=run1780297823674_auth_updated; fullName=Auth User Updated; phone=0957824387",
+    "status": "Pass"
+  },
+  "TC_PROF_03": {
+    "actual": "HTTP 409; code=USERNAME_EXISTS; message=Username already registered",
+    "status": "Pass"
+  },
+  "TC_PROF_04": {
+    "actual": "HTTP 200; đổi mật khẩu thành công; đăng nhập lại được với mật khẩu mới",
+    "status": "Pass"
+  },
+  "TC_PROF_05": {
+    "actual": "HTTP 401; code=INVALID_CREDENTIALS; message=Current password is incorrect",
+    "status": "Pass"
+  },
+  "TC_PROF_06": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=Password confirmation does not match",
+    "status": "Pass"
+  },
+  "TC_PROF_07": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=New password must be different from current password",
+    "status": "Pass"
+  },
+  "TC_SET_01": {
+    "actual": "HTTP 200; displayCurrency=EUR; bookingHoldMinutes=20",
+    "status": "Pass"
+  },
+  "TC_SET_02": {
+    "actual": "HTTP 200; displayCurrency=EUR; bookingHoldMinutes=20",
+    "status": "Pass"
+  },
+  "TC_SET_03": {
+    "actual": "HTTP 403; code=FORBIDDEN",
+    "status": "Pass"
+  },
+  "TC_SET_04": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=displayCurrency must be one of: VND, USD, EUR",
+    "status": "Pass"
+  },
+  "TC_SET_05": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=bookingHoldMinutes must be an integer between 1 and 120",
+    "status": "Pass"
+  },
+  "TC_COURT_01": {
+    "actual": "HTTP 200; returned 15 sân active; sân inactive test không xuất hiện",
+    "status": "Pass"
+  },
+  "TC_COURT_02": {
+    "actual": "HTTP 200; admin thấy sân inactive id=18",
+    "status": "Pass"
+  },
+  "TC_COURT_03": {
+    "actual": "HTTP 200; includeInactive bị bỏ qua với user thường",
+    "status": "Pass"
+  },
+  "TC_COURT_04": {
+    "actual": "HTTP 200; court=run1780297823674 Court Main; slots=4",
+    "status": "Pass"
+  },
+  "TC_COURT_05": {
+    "actual": "HTTP 404; code=COURT_NOT_FOUND",
+    "status": "Pass"
+  },
+  "TC_COURT_06": {
+    "actual": "HTTP 200; admin đọc được sân inactive run1780297823674 Court Inactive",
+    "status": "Pass"
+  },
+  "TC_COURT_07": {
+    "actual": "HTTP 200; availability trả 4 slot; trạng thái đầu tiên=AVAILABLE",
+    "status": "Pass"
+  },
+  "TC_COURT_08": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=date must follow YYYY-MM-DD format",
+    "status": "Pass"
+  },
+  "TC_COURT_09": {
+    "actual": "HTTP 404; code=COURT_NOT_FOUND",
+    "status": "Pass"
+  },
+  "TC_REC_01": {
+    "actual": "HTTP 200; strategy=personalized; aiStatus=ok; options=3",
+    "status": "Pass"
+  },
+  "TC_REC_02": {
+    "actual": "Request tới backend thất bại khi AI service dừng: fetch failed",
+    "status": "Fail"
+  },
+  "TC_REC_03": {
+    "actual": "HTTP 200; strategy=empty; recommendedOptions=0",
+    "status": "Pass"
+  },
+  "TC_REC_04": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=Missing required query fields: date",
+    "status": "Pass"
+  },
+  "TC_REC_05": {
+    "actual": "HTTP 401; code=UNAUTHORIZED",
+    "status": "Pass"
+  },
+  "TC_BOOK_01": {
+    "actual": "HTTP 201; bookingId=1245; status=LOCKED; lockExpiresAt=2026-06-01T07:30:39.106Z",
+    "status": "Pass"
+  },
+  "TC_BOOK_02": {
+    "actual": "HTTP 409; code=SLOT_LOCKED; message=Slot is currently locked by another user",
+    "status": "Pass"
+  },
+  "TC_BOOK_04": {
+    "actual": "HTTP 404; code=COURT_NOT_FOUND",
+    "status": "Pass"
+  },
+  "TC_BOOK_05": {
+    "actual": "HTTP 404; code=SLOT_NOT_FOUND",
+    "status": "Pass"
+  },
+  "TC_BOOK_06": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=date must follow YYYY-MM-DD format",
+    "status": "Pass"
+  },
+  "TC_BOOK_07": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=Missing required body fields: slotId, date",
+    "status": "Pass"
+  },
+  "TC_BOOK_08": {
+    "actual": "HTTP 401; code=UNAUTHORIZED",
+    "status": "Pass"
+  },
+  "TC_PAY_01": {
+    "actual": "HTTP 201; transferCode=BOOKING-1245; amountVnd=120000; bookingStatus=LOCKED",
+    "status": "Pass"
+  },
+  "TC_PAY_02": {
+    "actual": "HTTP 403; code=FORBIDDEN; message=Cannot pay for another user booking",
+    "status": "Pass"
+  },
+  "TC_PAY_05": {
+    "actual": "HTTP 200 webhook; booking status sau webhook=CONFIRMED",
+    "status": "Pass"
+  },
+  "TC_BOOK_03": {
+    "actual": "HTTP 409; slot đã CONFIRMED nên không đặt lại được; code=SLOT_UNAVAILABLE",
+    "status": "Pass"
+  },
+  "TC_PAY_03": {
+    "actual": "HTTP 409; code=BOOKING_NOT_LOCKED; message=Booking is not in LOCKED state",
+    "status": "Pass"
+  },
+  "TC_PAY_06": {
+    "actual": "HTTP 401; code=INVALID_WEBHOOK_SIGNATURE",
+    "status": "Pass"
+  },
+  "TC_PAY_08": {
+    "actual": "HTTP 200; duplicate webhook không tạo thêm event; payment_events count=1",
+    "status": "Pass"
+  },
+  "TC_PAY_07": {
+    "actual": "HTTP 200 webhook; amount mismatch không confirm thanh toán; booking=LOCKED; payment=pending",
+    "status": "Pass"
+  },
+  "TC_PAY_04": {
+    "actual": "HTTP 409; code=BOOKING_LOCK_EXPIRED; message=Booking lock has expired",
+    "status": "Pass"
+  },
+  "TC_PAY_09": {
+    "actual": "HTTP 200 webhook; booking chuyển CANCELLED khi lock đã hết hạn",
+    "status": "Pass"
+  },
+  "TC_HIS_01": {
+    "actual": "HTTP 200; items=20; total=205",
+    "status": "Pass"
+  },
+  "TC_HIS_02": {
+    "actual": "HTTP 403; code=FORBIDDEN",
+    "status": "Pass"
+  },
+  "TC_HIS_03": {
+    "actual": "HTTP 200; bookingId=1249; status=CANCELLED",
+    "status": "Pass"
+  },
+  "TC_HIS_04": {
+    "actual": "HTTP 200; status=REFUNDED; refundAmountVnd=77000",
+    "status": "Pass"
+  },
+  "TC_HIS_05": {
+    "actual": "HTTP 409; code=REFUND_WINDOW_CLOSED; message=Refund is only allowed at least 5 hours before slot start",
+    "status": "Pass"
+  },
+  "TC_HIS_06": {
+    "actual": "HTTP 409; code=BOOKING_ALREADY_COMPLETED; message=Completed booking cannot be cancelled",
+    "status": "Pass"
+  },
+  "TC_HIS_07": {
+    "actual": "HTTP 409; code=BOOKING_ALREADY_REFUNDED; message=Booking is already refunded",
+    "status": "Pass"
+  },
+  "TC_ACOURT_01": {
+    "actual": "HTTP 200; courts=18; có sân active và inactive",
+    "status": "Pass"
+  },
+  "TC_ACOURT_02": {
+    "actual": "HTTP 201; tạo sân test id=17; name=run1780297823674 Court Main",
+    "status": "Pass"
+  },
+  "TC_ACOURT_03": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=Missing required body fields: name",
+    "status": "Pass"
+  },
+  "TC_ACOURT_04": {
+    "actual": "HTTP 200; name=run1780297823674 Court Main Updated; location=QA Zone Updated",
+    "status": "Pass"
+  },
+  "TC_ACOURT_05": {
+    "actual": "HTTP 200; toggle isActive false->true thành công",
+    "status": "Pass"
+  },
+  "TC_ACOURT_06": {
+    "actual": "HTTP 200; delete mềm sân id=18; isActive=false",
+    "status": "Pass"
+  },
+  "TC_ACOURT_07": {
+    "actual": "HTTP 403; code=FORBIDDEN",
+    "status": "Pass"
+  },
+  "TC_ACOURT_08": {
+    "actual": "HTTP 201; slot primary id=183; time=18:00-19:00",
+    "status": "Pass"
+  },
+  "TC_ACOURT_09": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=endTime must be greater than startTime",
+    "status": "Pass"
+  },
+  "TC_ACOURT_10": {
+    "actual": "HTTP 409; code=SLOT_CONFLICT; message=Slot time range already exists for this court",
+    "status": "Pass"
+  },
+  "TC_ACOURT_11": {
+    "actual": "HTTP 200; slot id=183; priceVnd=150000",
+    "status": "Pass"
+  },
+  "TC_ACOURT_12": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=priceVnd must be a positive integer",
+    "status": "Pass"
+  },
+  "TC_ACOURT_13": {
+    "actual": "HTTP 200; slot id=184; isActive=false",
+    "status": "Pass"
+  },
+  "TC_ACOURT_14": {
+    "actual": "HTTP 404; code=SLOT_NOT_FOUND",
+    "status": "Pass"
+  },
+  "TC_AUSER_01": {
+    "actual": "HTTP 200; users=175; gồm cả admin/user test đã tạo",
+    "status": "Pass"
+  },
+  "TC_AUSER_02": {
+    "actual": "HTTP 201; tạo user id=178; email=run1780297823674_user2@example.com",
+    "status": "Pass"
+  },
+  "TC_AUSER_03": {
+    "actual": "HTTP 201; tạo admin id=179; email=run1780297823674_admin2@example.com",
+    "status": "Pass"
+  },
+  "TC_AUSER_04": {
+    "actual": "HTTP 409; code=EMAIL_EXISTS; message=Email already registered",
+    "status": "Pass"
+  },
+  "TC_AUSER_05": {
+    "actual": "HTTP 200; username=run1780297823674_user2_updated; email=run1780297823674_user2_updated@example.com",
+    "status": "Pass"
+  },
+  "TC_AUSER_06": {
+    "actual": "HTTP 200; promote->demote user id=178 thành công",
+    "status": "Pass"
+  },
+  "TC_AUSER_07": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=System must have at least one active admin",
+    "status": "Pass"
+  },
+  "TC_AUSER_08": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=System must have at least one active admin",
+    "status": "Pass"
+  },
+  "TC_AUSER_09": {
+    "actual": "HTTP 200; reset password thành công; user đăng nhập lại được",
+    "status": "Pass"
+  },
+  "TC_AUSER_10": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=Password must have at least 6 characters",
+    "status": "Pass"
+  },
+  "TC_AUSER_11": {
+    "actual": "HTTP 403; code=FORBIDDEN",
+    "status": "Pass"
+  },
+  "TC_ABOOK_01": {
+    "actual": "HTTP 200; items=20; total=1251",
+    "status": "Pass"
+  },
+  "TC_ABOOK_02": {
+    "actual": "HTTP 200; filtered items=3",
+    "status": "Pass"
+  },
+  "TC_ABOOK_03": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=status must be LOCKED, CONFIRMED, COMPLETED, CANCELLED, or REFUNDED",
+    "status": "Pass"
+  },
+  "TC_ABOOK_04": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=dateFrom must be less than or equal to dateTo",
+    "status": "Pass"
+  },
+  "TC_ABOOK_05": {
+    "actual": "HTTP 200; bookingId=1253; status=COMPLETED",
+    "status": "Pass"
+  },
+  "TC_ABOOK_06": {
+    "actual": "HTTP 200; bookingId=1254; status=COMPLETED",
+    "status": "Pass"
+  },
+  "TC_ABOOK_07": {
+    "actual": "HTTP 409; code=BOOKING_ALREADY_REFUNDED; message=Refunded booking cannot be completed",
+    "status": "Pass"
+  },
+  "TC_ABOOK_08": {
+    "actual": "HTTP 200; bookingId=1255; status=CANCELLED",
+    "status": "Pass"
+  },
+  "TC_ABOOK_09": {
+    "actual": "HTTP 200; bookingId=1256; status=REFUNDED; refundAmountVnd=68600",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_01": {
+    "actual": "HTTP 200; stats.totalBookings=1255; recentBookings=10",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_02": {
+    "actual": "Request tới analytics overview thất bại khi AI service dừng: fetch failed",
+    "status": "Fail"
+  },
+  "TC_ANALYTICS_03": {
+    "actual": "HTTP 403; code=FORBIDDEN",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_04": {
+    "actual": "HTTP 200; totalRevenueVnd=867800; dailySeries=3",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_05": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=Missing required query fields: end_date",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_06": {
+    "actual": "HTTP 400; code=VALIDATION_ERROR; message=start_date must be less than or equal to end_date",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_07": {
+    "actual": "HTTP 200; peak-hours rows=5",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_08": {
+    "actual": "HTTP 200; utilizationPercent=0.3; confirmedSlots=16",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_09": {
+    "actual": "HTTP 200; utilization-by-court rows=14",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_10": {
+    "actual": "HTTP 200; top-users rows=1",
+    "status": "Pass"
+  },
+  "TC_ANALYTICS_11": {
+    "actual": "HTTP 200; totalRevenueVnd=948700; totalBookings=1255",
+    "status": "Pass"
+  },
+  "TC_AI_01": {
+    "actual": "HTTP 200; status=ok; service=ai-recommendation",
+    "status": "Pass"
+  },
+  "TC_AI_02": {
+    "actual": "HTTP 200; recommended_slots=09:00, 07:00, 13:00",
+    "status": "Pass"
+  },
+  "TC_AI_03": {
+    "actual": "HTTP 400; detail=user_id must be a positive integer",
+    "status": "Pass"
+  },
+  "TC_AI_04": {
+    "actual": "HTTP 200; strategy=personalized; recommendedOptions=2",
+    "status": "Pass"
+  },
+  "TC_AI_05": {
+    "actual": "HTTP 200; strategy=cold_start; recommendedOptions=1",
+    "status": "Pass"
+  },
+  "TC_AI_06": {
+    "actual": "HTTP 200; strategy=empty; recommendedOptions=0",
+    "status": "Pass"
+  },
+  "TC_AI_07": {
+    "actual": "HTTP 200; strategy=admin_ml; recommendations=4",
+    "status": "Pass"
+  }
+}

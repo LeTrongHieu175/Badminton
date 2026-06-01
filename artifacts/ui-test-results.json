@@ -1,0 +1,22 @@
+{
+  "TC_AUTH_10": {
+    "status": "Pass",
+    "actual": "UI redirect về /; heading=Nền tảng vận hành sân cầu lông theo chuẩn thương mại"
+  },
+  "TC_BOOK_09": {
+    "status": "Pass",
+    "actual": "UI tạo booking thành công cho courtId=16; badge slot đổi sang \"Đã khóa\""
+  },
+  "TC_HIS_08": {
+    "status": "Pass",
+    "actual": "UI hiển thị 2 nhóm booking; activeRows=86; historyRows=14"
+  },
+  "TC_UDASH_01": {
+    "status": "Pass",
+    "actual": "UI dashboard render đủ stat cards; nội dung=Tổng lượt đặt của tôi20Thống kê toàn bộ thời gianĐã xác nhận12Đang chờ2Tổng chi phí86,23 €"
+  },
+  "TC_UDASH_02": {
+    "status": "Pass",
+    "actual": "UI bảng lịch đặt sân gần đây hiển thị 20 dòng"
+  }
+}
