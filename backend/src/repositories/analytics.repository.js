@@ -46,6 +46,55 @@ async function getRevenueSummary(startDate, endDate) {
   };
 }
 
+async function getDailyUtilizationSeries(startDate, endDate) {
+  const result = await query(
+    `
+      WITH day_series AS (
+        SELECT generate_series($1::date, $2::date, interval '1 day')::date AS booking_date
+      ),
+      slots_per_day AS (
+        SELECT COUNT(*)::INT AS total_slots
+        FROM court_slots s
+        JOIN courts c ON c.id = s.court_id
+        WHERE s.is_active = TRUE
+          AND c.is_active = TRUE
+      ),
+      completed_by_day AS (
+        SELECT
+          b.booking_date,
+          COUNT(*)::INT AS confirmed_slots
+        FROM bookings b
+        WHERE b.status IN ('CONFIRMED', 'COMPLETED')
+          AND b.booking_date BETWEEN $1 AND $2
+        GROUP BY b.booking_date
+      )
+      SELECT
+        ds.booking_date::TEXT AS date,
+        COALESCE(cbd.confirmed_slots, 0)::INT AS confirmed_slots,
+        spd.total_slots::INT AS total_slots
+      FROM day_series ds
+      CROSS JOIN slots_per_day spd
+      LEFT JOIN completed_by_day cbd ON cbd.booking_date = ds.booking_date
+      ORDER BY ds.booking_date ASC
+    `,
+    [startDate, endDate]
+  );
+
+  return result.rows.map((row) => {
+    const confirmedSlots = Number(row.confirmed_slots || 0);
+    const totalSlots = Number(row.total_slots || 0);
+    const utilizationRate = totalSlots > 0 ? confirmedSlots / totalSlots : 0;
+
+    return {
+      date: row.date,
+      confirmedSlots,
+      totalAvailableSlots: totalSlots,
+      utilizationRate,
+      utilizationPercent: Number((utilizationRate * 100).toFixed(2))
+    };
+  });
+}
+
 async function getPeakHours(startDate, endDate) {
   const result = await query(
     `
@@ -229,6 +278,7 @@ async function getUtilizationByCourt() {
 
 module.exports = {
   getRevenueSummary,
+  getDailyUtilizationSeries,
   getPeakHours,
   getConfirmedBookingCount,
   getActiveSlotsPerDay,

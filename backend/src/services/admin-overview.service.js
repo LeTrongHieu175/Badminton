@@ -1,4 +1,5 @@
 const { env } = require('../config/env');
+const analyticsRepository = require('../repositories/analytics.repository');
 const analyticsService = require('./analytics.service');
 const bookingService = require('./booking.service');
 
@@ -233,9 +234,10 @@ async function fetchAiInsights(payload) {
 
 async function getOverview(currentUser) {
   const range = getCurrentYearRange();
-  const [stats, revenue, peakHours, utilization, recentBookingPayload] = await Promise.all([
+  const [stats, revenue, utilizationSeries, peakHours, utilization, recentBookingPayload] = await Promise.all([
     analyticsService.getSummary(),
     analyticsService.getRevenue(range),
+    analyticsRepository.getDailyUtilizationSeries(range.startDate, range.endDate),
     analyticsService.getPeakHours(range),
     analyticsService.getUtilizationByCourt(),
     bookingService.getAllBookings(currentUser, { page: 1, limit: RECENT_BOOKINGS_LIMIT })
@@ -269,6 +271,7 @@ async function getOverview(currentUser) {
     stats,
     charts: {
       revenue: revenue.dailySeries,
+      utilizationSeries,
       peakHours,
       utilizationByCourt: utilization
     },

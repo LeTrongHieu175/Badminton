@@ -79,6 +79,14 @@ export async function getAdminOverview() {
             revenueVnd: Number(item.revenueVnd || 0)
           }))
         : [],
+      utilizationSeries: Array.isArray(payload?.charts?.utilizationSeries)
+        ? payload.charts.utilizationSeries.map((item) => ({
+            period: item.date,
+            usage: Number(item.utilizationPercent || 0),
+            confirmedSlots: Number(item.confirmedSlots || 0),
+            totalAvailableSlots: Number(item.totalAvailableSlots || 0)
+          }))
+        : [],
       peakHours: Array.isArray(payload?.charts?.peakHours)
         ? payload.charts.peakHours.map((item) => ({
             hour: `${String(item.hour).padStart(2, '0')}:00`,

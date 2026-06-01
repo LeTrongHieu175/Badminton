@@ -66,10 +66,11 @@ function AdminDashboard() {
   }
 
   const { stats, charts, alerts, aiInsights, recentBookings } = data;
-  const mergedSeries = charts.revenue.map((point, index) => ({
+  const utilizationByPeriod = new Map((charts.utilizationSeries || []).map((point) => [point.period, point]));
+  const mergedSeries = charts.revenue.map((point) => ({
     period: point.period,
     revenueVnd: point.revenueVnd,
-    utilization: charts.utilization[index % Math.max(charts.utilization.length, 1)]?.usage || 0
+    utilization: utilizationByPeriod.get(point.period)?.usage || 0
   }));
 
   return (
@@ -130,7 +131,7 @@ function AdminDashboard() {
       </section>
 
       <section className='grid gap-4 xl:grid-cols-[1.1fr_0.9fr]'>
-        <ChartCard title='Tương quan doanh thu và công suất' subtitle='Theo dõi nhịp vận hành trên cùng một đồ thị'>
+        <ChartCard title='Tương quan doanh thu và công suất' subtitle='So sánh theo cùng mốc ngày để tránh lệch ngữ cảnh dữ liệu'>
           <ResponsiveContainer width='100%' height='100%'>
             <LineChart data={mergedSeries}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
