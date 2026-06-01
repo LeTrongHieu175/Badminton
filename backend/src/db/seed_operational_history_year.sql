@@ -1,6 +1,6 @@
--- Seed a more realistic one-year operating history for demo environments.
--- Creates a broad user base, past and upcoming bookings, and payment records
--- so admin/user dashboards look like a system that has been running for months.
+-- Seed a more realistic one-year booking history for demo environments.
+-- Creates a broad user base and historical bookings only
+-- so booking history screens look like a system that has been running for months.
 
 WITH
 last_name(last_name) AS (
@@ -142,7 +142,7 @@ user_count AS (
   FROM user_pool
 ),
 date_series AS (
-  SELECT generate_series(CURRENT_DATE - 364, CURRENT_DATE + 21, interval '1 day')::date AS booking_date
+  SELECT generate_series(CURRENT_DATE - 364, CURRENT_DATE - 1, interval '1 day')::date AS booking_date
 ),
 candidate_slots AS (
   SELECT
@@ -164,21 +164,11 @@ selected_slots AS (
   WHERE random() <
     LEAST(
       CASE
-        WHEN booking_date > CURRENT_DATE THEN
-          CASE
-            WHEN start_hour BETWEEN 17 AND 20 THEN 0.34
-            WHEN start_hour IN (7, 8, 16, 21) THEN 0.24
-            WHEN start_hour IN (6, 9, 14, 15) THEN 0.15
-            ELSE 0.08
-          END
-        ELSE
-          CASE
-            WHEN start_hour BETWEEN 18 AND 20 THEN 0.58
-            WHEN start_hour IN (17, 21) THEN 0.42
-            WHEN start_hour IN (7, 8, 16) THEN 0.31
-            WHEN start_hour IN (6, 9, 14, 15) THEN 0.21
-            ELSE 0.10
-          END
+        WHEN start_hour BETWEEN 18 AND 20 THEN 0.58
+        WHEN start_hour IN (17, 21) THEN 0.42
+        WHEN start_hour IN (7, 8, 16) THEN 0.31
+        WHEN start_hour IN (6, 9, 14, 15) THEN 0.21
+        ELSE 0.10
       END
       + CASE WHEN iso_dow IN (6, 7) THEN 0.12 ELSE 0 END
       + CASE WHEN month_no IN (5, 6, 7, 8) THEN 0.04 ELSE 0 END
@@ -227,51 +217,23 @@ prepared_bookings AS (
     bf.slot_id,
     bf.booking_date,
     CASE
-      WHEN bf.booking_date > CURRENT_DATE THEN
-        CASE
-          WHEN bf.booking_random < 0.88 THEN 'CONFIRMED'
-          ELSE 'LOCKED'
-        END
-      WHEN bf.booking_date = CURRENT_DATE THEN
-        CASE
-          WHEN bf.booking_random < 0.55 THEN 'COMPLETED'
-          WHEN bf.booking_random < 0.75 THEN 'CONFIRMED'
-          WHEN bf.booking_random < 0.92 THEN 'CANCELLED'
-          ELSE 'REFUNDED'
-        END
-      WHEN bf.booking_date >= CURRENT_DATE - 2 THEN
-        CASE
-          WHEN bf.booking_random < 0.58 THEN 'COMPLETED'
-          WHEN bf.booking_random < 0.78 THEN 'CONFIRMED'
-          WHEN bf.booking_random < 0.93 THEN 'CANCELLED'
-          ELSE 'REFUNDED'
-        END
-      ELSE
-        CASE
-          WHEN bf.booking_random < 0.72 THEN 'COMPLETED'
-          WHEN bf.booking_random < 0.89 THEN 'CANCELLED'
-          ELSE 'REFUNDED'
-        END
-      END AS status,
+      WHEN bf.booking_random < 0.72 THEN 'COMPLETED'
+      WHEN bf.booking_random < 0.89 THEN 'CANCELLED'
+      ELSE 'REFUNDED'
+    END AS status,
     (bf.price_vnd + (CASE WHEN bf.amount_random < 0.16 THEN 1000 WHEN bf.amount_random > 0.94 THEN 2000 ELSE 0 END))::int AS amount_vnd,
     'VND'::char(3) AS currency,
     bf.start_time,
     bf.end_time,
-    CASE
-      WHEN bf.booking_date > CURRENT_DATE THEN
-        (bf.booking_date::timestamp - ((1 + FLOOR(bf.timing_random * 10))::int::text || ' days')::interval)
-        + ((7 + FLOOR(bf.booking_random * 13))::int::text || ' hours')::interval
-      ELSE
-        (bf.booking_date::timestamp - ((2 + FLOOR(bf.timing_random * 20))::int::text || ' days')::interval)
-        + ((8 + FLOOR(bf.booking_random * 12))::int::text || ' hours')::interval
-    END AS created_at
+    (bf.booking_date::timestamp - ((2 + FLOOR(bf.timing_random * 20))::int::text || ' days')::interval)
+      + ((8 + FLOOR(bf.booking_random * 12))::int::text || ' hours')::interval AS created_at
   FROM booking_facts bf
 ),
 stamped_bookings AS (
   SELECT
     pb.*,
     CASE
-      WHEN pb.status IN ('CONFIRMED', 'COMPLETED', 'REFUNDED') THEN
+      WHEN pb.status IN ('COMPLETED', 'REFUNDED') THEN
         pb.created_at + ((10 + FLOOR(random() * 160))::int::text || ' minutes')::interval
       ELSE NULL
     END AS confirmed_at,
@@ -291,23 +253,7 @@ stamped_bookings AS (
     CASE
       WHEN pb.status = 'REFUNDED' THEN FLOOR(pb.amount_vnd * (0.55 + random() * 0.25))::int
       ELSE NULL
-    END AS refund_amount_vnd,
-    CASE
-      WHEN pb.status = 'LOCKED' THEN 'lock:court:' || pb.court_id || ':slot:' || pb.slot_id || ':date:' || pb.booking_date::text
-      ELSE NULL
-    END AS lock_key,
-    CASE
-      WHEN pb.status = 'LOCKED' THEN md5('lock-' || pb.rn::text || '-' || pb.booking_date::text)
-      ELSE NULL
-    END AS lock_token,
-    CASE
-      WHEN pb.status = 'LOCKED' THEN NOW() + ((8 + FLOOR(random() * 18))::int::text || ' minutes')::interval
-      ELSE NULL
-    END AS lock_expires_at,
-    CASE
-      WHEN pb.status = 'LOCKED' THEN NOW() + ((8 + FLOOR(random() * 18))::int::text || ' minutes')::interval
-      ELSE NULL
-    END AS payment_due_at
+    END AS refund_amount_vnd
   FROM prepared_bookings pb
 ),
 inserted_bookings AS (
@@ -338,10 +284,10 @@ inserted_bookings AS (
     sb.status,
     sb.amount_vnd,
     sb.currency,
-    sb.lock_key,
-    sb.lock_token,
-    sb.lock_expires_at,
-    sb.payment_due_at,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     sb.confirmed_at,
     sb.cancelled_at,
     sb.refunded_at,
@@ -351,19 +297,9 @@ inserted_bookings AS (
       sb.created_at,
       COALESCE(sb.confirmed_at, sb.created_at),
       COALESCE(sb.cancelled_at, sb.created_at),
-      COALESCE(sb.refunded_at, sb.created_at),
-      COALESCE(sb.lock_expires_at, sb.created_at)
+      COALESCE(sb.refunded_at, sb.created_at)
     )
   FROM stamped_bookings sb
-  WHERE NOT EXISTS (
-    SELECT 1
-    FROM bookings existing
-    WHERE existing.court_id = sb.court_id
-      AND existing.slot_id = sb.slot_id
-      AND existing.booking_date = sb.booking_date
-      AND existing.status IN ('LOCKED', 'CONFIRMED')
-      AND sb.status IN ('LOCKED', 'CONFIRMED')
-  )
   RETURNING id, status, created_at
 ),
 inserted_payments AS (
@@ -383,24 +319,22 @@ inserted_payments AS (
     b.id,
     CASE
       WHEN bk.status = 'CANCELLED' THEN 'failed_payment'
-      WHEN bk.status = 'LOCKED' THEN 'sepay_pending'
       ELSE 'sepay'
     END,
     'ops_year_pi_' || b.id::text,
     CASE
       WHEN bk.status = 'CANCELLED' THEN 'failed'
-      WHEN bk.status = 'LOCKED' THEN 'pending'
       ELSE 'succeeded'
     END,
     bk.amount_vnd,
     bk.currency,
     CASE
-      WHEN bk.status IN ('COMPLETED', 'CONFIRMED', 'REFUNDED') THEN 'ops_year_evt_' || b.id::text
+      WHEN bk.status IN ('COMPLETED', 'REFUNDED') THEN 'ops_year_evt_' || b.id::text
       ELSE NULL
     END,
     jsonb_build_object(
       'seed', true,
-      'scenario', 'one_year_operational_demo',
+      'scenario', 'one_year_history_demo',
       'bookingStatus', bk.status
     ),
     bk.created_at,
