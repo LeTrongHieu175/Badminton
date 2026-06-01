@@ -17,13 +17,19 @@ async function runSqlFile(filePath, label) {
 async function hasOperationalDemoSeedData() {
   const result = await query(
     `
-      SELECT COUNT(*)::int AS seeded_users
-      FROM users
-      WHERE email LIKE 'ops.demo.%@example.com'
+      SELECT
+        COUNT(DISTINCT u.id)::int AS seeded_users,
+        COUNT(DISTINCT b.id)::int AS seeded_bookings
+      FROM users u
+      LEFT JOIN bookings b ON b.user_id = u.id
+      WHERE u.email LIKE 'ops.demo.%@example.com'
     `
   );
 
-  return Number(result.rows[0]?.seeded_users || 0) > 0;
+  const seededUsers = Number(result.rows[0]?.seeded_users || 0);
+  const seededBookings = Number(result.rows[0]?.seeded_bookings || 0);
+
+  return seededUsers > 0 && seededBookings > 0;
 }
 
 async function seedRailwayOperationalDemo() {
@@ -34,7 +40,7 @@ async function seedRailwayOperationalDemo() {
   await runSqlFile(baseSeedFilePath, 'seed.sql');
 
   if (await hasOperationalDemoSeedData()) {
-    console.log('[db] skipped seed_operational_history_year.sql because operational demo data already exists');
+    console.log('[db] skipped seed_operational_history_year.sql because operational demo booking history already exists');
     return;
   }
 
