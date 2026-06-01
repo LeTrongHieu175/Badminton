@@ -292,6 +292,7 @@ async function getUtilizationByCourt() {
         GROUP BY s.court_id
       ) active_slots ON active_slots.court_id = c.id
       WHERE c.is_active = TRUE
+        AND COALESCE(active_slots.active_slot_count, 0) > 0
       ORDER BY c.id ASC
     `
   );

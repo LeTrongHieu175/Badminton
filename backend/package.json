@@ -12,6 +12,7 @@
     "db:seed:railway-demo": "node src/db/seed-railway-demo.js",
     "db:seed:railway-operational-demo": "node src/db/seed-railway-operational-demo.js",
     "db:normalize:history-demo": "node src/db/normalize-history-demo.js",
+    "db:backfill:history-payments": "node src/db/backfill-history-payments.js",
     "db:schema": "node src/db/bootstrap.js schema",
     "db:migrate": "node src/db/bootstrap.js migrate",
     "db:seed": "node src/db/bootstrap.js seed",
