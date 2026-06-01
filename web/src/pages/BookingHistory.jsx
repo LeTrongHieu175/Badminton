@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import BookingTable from '../components/BookingTable';
 import PaymentModal from '../components/PaymentModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useSystemSettings } from '../contexts/SystemSettingsContext';
 import { useCancelBooking, useCreatePaymentIntent, useUserBookings } from '../hooks/useBookings';
 import { getApiErrorMessage } from '../utils/errors';
 
@@ -24,6 +25,7 @@ function canRefundBooking(booking) {
 
 function BookingHistory() {
   const { user } = useAuth();
+  const { settings } = useSystemSettings();
   const [paymentInfo, setPaymentInfo] = useState(null);
   const { data, isLoading, isError, error, refetch } = useUserBookings(user?.id, {
     page: 1,
@@ -71,7 +73,7 @@ function BookingHistory() {
       <section className='surface-card p-5'>
         <h2 className='section-title'>Sân đang đặt</h2>
         <p className='subtle-copy mt-1'>
-          Đơn Đã khóa cần thanh toán trong 10 phút. Đơn Đã xác nhận chỉ có thể hoàn tiền khi còn ít nhất 5 tiếng trước giờ chơi.
+          Đơn Đã khóa cần thanh toán trong {settings.bookingHoldMinutes} phút. Đơn Đã xác nhận chỉ có thể hoàn tiền khi còn ít nhất 5 tiếng trước giờ chơi.
         </p>
 
         <div className='mt-4'>

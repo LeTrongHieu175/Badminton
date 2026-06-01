@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import BookingModal from '../components/BookingModal';
+import { useSystemSettings } from '../contexts/SystemSettingsContext';
 import { useCreateBooking } from '../hooks/useBookings';
 import { useCourt, useCourtAvailability } from '../hooks/useCourts';
 import { formatCurrencyFromVnd, formatStatusLabel } from '../utils/formatters';
@@ -8,10 +9,13 @@ import { getApiErrorMessage } from '../utils/errors';
 
 function CourtBooking() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preferredSlotId = Number(searchParams.get('slotId') || 0);
   const [date, setDate] = useState(() => searchParams.get('date') || new Date().toISOString().slice(0, 10));
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [paymentNotice, setPaymentNotice] = useState(null);
+  const { settings } = useSystemSettings();
 
   const { data: court, isError: isCourtError, error: courtError } = useCourt(id);
   const {
@@ -51,12 +55,16 @@ function CourtBooking() {
       return;
     }
 
-    await createBookingMutation.mutateAsync({
+    const booking = await createBookingMutation.mutateAsync({
       courtId: Number(id),
       slotId: selectedSlot.id,
       date
     });
 
+    setPaymentNotice({
+      bookingId: booking.id,
+      holdMinutes: settings.bookingHoldMinutes
+    });
     setSelectedSlot(null);
   };
 
@@ -152,6 +160,38 @@ function CourtBooking() {
         onConfirm={handleConfirmBooking}
         isSubmitting={createBookingMutation.isPending}
       />
+
+      {paymentNotice ? (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4'>
+          <div className='w-full max-w-lg rounded-3xl bg-white p-6 text-center shadow-panel'>
+            <div className='mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-2xl text-amber-700'>
+              !
+            </div>
+            <h3 className='mt-4 text-xl font-semibold text-slate-900'>Đặt sân thành công</h3>
+            <p className='mt-3 text-sm leading-6 text-slate-600'>
+              Bạn cần thanh toán trong vòng <span className='font-semibold text-amber-700'>{paymentNotice.holdMinutes} phút</span>{' '}
+              kể từ lúc đặt sân để giữ chỗ. Quá thời gian này, đơn đặt sân sẽ tự động bị hủy.
+            </p>
+
+            <div className='mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center'>
+              <button
+                type='button'
+                onClick={() => navigate('/bookings')}
+                className='rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700'
+              >
+                Đi đến thanh toán
+              </button>
+              <button
+                type='button'
+                onClick={() => setPaymentNotice(null)}
+                className='rounded-xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700'
+              >
+                Đóng thông báo
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
