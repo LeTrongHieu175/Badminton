@@ -10,6 +10,7 @@
     "migrate": "node src/db/bootstrap.js migrate",
     "seed": "node src/db/bootstrap.js seed",
     "db:seed:railway-demo": "node src/db/seed-railway-demo.js",
+    "db:seed:railway-operational-demo": "node src/db/seed-railway-operational-demo.js",
     "db:schema": "node src/db/bootstrap.js schema",
     "db:migrate": "node src/db/bootstrap.js migrate",
     "db:seed": "node src/db/bootstrap.js seed",
