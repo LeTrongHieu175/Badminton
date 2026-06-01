@@ -7,11 +7,56 @@ const AI_TIMEOUT_MS = 1500;
 const RECENT_BOOKINGS_LIMIT = 10;
 const MAX_RECOMMENDATIONS = 4;
 
-function getCurrentYearRange() {
-  const year = new Date().getUTCFullYear();
+function formatDateOnly(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function shiftDate(date, days) {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
+function getCurrentYearRange(now = new Date()) {
+  const year = now.getUTCFullYear();
   return {
     startDate: `${year}-01-01`,
-    endDate: `${year}-12-31`
+    endDate: formatDateOnly(now)
+  };
+}
+
+function getCurrentMonthRange(now = new Date()) {
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  return {
+    startDate: `${year}-${month}-01`,
+    endDate: formatDateOnly(now)
+  };
+}
+
+function getTodayRange(now = new Date()) {
+  const today = formatDateOnly(now);
+  return {
+    startDate: today,
+    endDate: today
+  };
+}
+
+function getLast30DaysRange(now = new Date()) {
+  return {
+    startDate: formatDateOnly(shiftDate(now, -29)),
+    endDate: formatDateOnly(now)
+  };
+}
+
+function getLast12MonthsRange(now = new Date()) {
+  const endDate = formatDateOnly(now);
+  const startAnchor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  startAnchor.setUTCMonth(startAnchor.getUTCMonth() - 11);
+
+  return {
+    startDate: formatDateOnly(startAnchor),
+    endDate
   };
 }
 
@@ -233,28 +278,54 @@ async function fetchAiInsights(payload) {
 }
 
 async function getOverview(currentUser) {
-  const range = getCurrentYearRange();
-  const [stats, revenue, utilizationSeries, peakHours, utilization, recentBookingPayload] = await Promise.all([
+  const now = new Date();
+  const yearRange = getCurrentYearRange(now);
+  const monthRange = getCurrentMonthRange(now);
+  const todayRange = getTodayRange(now);
+  const last30DaysRange = getLast30DaysRange(now);
+  const last12MonthsRange = getLast12MonthsRange(now);
+
+  const [
+    stats,
+    revenueYearToDate,
+    revenueMonthToDate,
+    revenueToday,
+    revenueLast30Days,
+    revenueLast12Months,
+    utilizationLast30Days,
+    peakHours,
+    utilizationByCourt,
+    recentBookingPayload
+  ] = await Promise.all([
     analyticsService.getSummary(),
-    analyticsService.getRevenue(range),
-    analyticsRepository.getDailyUtilizationSeries(range.startDate, range.endDate),
-    analyticsService.getPeakHours(range),
+    analyticsService.getRevenue(yearRange),
+    analyticsService.getRevenue(monthRange),
+    analyticsService.getRevenue(todayRange),
+    analyticsService.getRevenue(last30DaysRange),
+    analyticsRepository.getMonthlyRevenueSeries(last12MonthsRange.startDate, last12MonthsRange.endDate),
+    analyticsRepository.getDailyUtilizationSeries(last30DaysRange.startDate, last30DaysRange.endDate),
+    analyticsService.getPeakHours(last30DaysRange),
     analyticsService.getUtilizationByCourt(),
     bookingService.getAllBookings(currentUser, { page: 1, limit: RECENT_BOOKINGS_LIMIT })
   ]);
 
-  const revenueTrend = calculateRevenueTrend(revenue.dailySeries);
+  const revenueTrend = calculateRevenueTrend(revenueLast30Days.dailySeries);
+  const avgUtilizationLast30Days =
+    utilizationLast30Days.length > 0
+      ? utilizationLast30Days.reduce((sum, item) => sum + Number(item.utilizationPercent || 0), 0) /
+        utilizationLast30Days.length
+      : 0;
   const alerts = buildAlerts({
     peakHours,
-    utilization,
+    utilization: utilizationByCourt,
     revenueTrend
   });
 
   const aiPayload = {
     stats,
-    revenueSeries: revenue.dailySeries,
+    revenueSeries: revenueLast30Days.dailySeries,
     peakHours,
-    utilizationByCourt: utilization,
+    utilizationByCourt,
     alerts,
     revenueTrend
   };
@@ -262,18 +333,27 @@ async function getOverview(currentUser) {
 
   const fallbackRecommendations = buildFallbackRecommendations({
     alerts,
-    utilization,
+    utilization: utilizationByCourt,
     peakHours,
     revenueTrend
   });
 
   return {
-    stats,
+    stats: {
+      ...stats,
+      totalRevenueVnd: revenueYearToDate.totalRevenueVnd,
+      revenueTodayVnd: revenueToday.totalRevenueVnd,
+      revenueMonthToDateVnd: revenueMonthToDate.totalRevenueVnd,
+      revenueYearToDateVnd: revenueYearToDate.totalRevenueVnd,
+      revenueAllTimeVnd: Number(stats.totalRevenueVnd || 0),
+      avgUtilizationLast30DaysPercent: Number(avgUtilizationLast30Days.toFixed(2))
+    },
     charts: {
-      revenue: revenue.dailySeries,
-      utilizationSeries,
+      revenue: revenueLast30Days.dailySeries,
+      revenueByMonth: revenueLast12Months,
+      utilizationSeries: utilizationLast30Days,
       peakHours,
-      utilizationByCourt: utilization
+      utilizationByCourt
     },
     alerts,
     aiInsights: {

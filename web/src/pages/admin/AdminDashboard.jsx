@@ -72,22 +72,40 @@ function AdminDashboard() {
     revenueVnd: point.revenueVnd,
     utilization: utilizationByPeriod.get(point.period)?.usage || 0
   }));
+  const monthRevenueSeries = charts.revenueByMonth || [];
 
   return (
     <div className='space-y-6'>
       <section className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
-        <StatCard label='Tổng doanh thu' value={formatCurrencyFromVnd(stats.totalRevenueVnd)} tone='info' />
+        <StatCard label='Doanh thu hôm nay' value={formatCurrencyFromVnd(stats.revenueTodayVnd)} tone='info' />
+        <StatCard label='Doanh thu tháng này' value={formatCurrencyFromVnd(stats.revenueMonthToDateVnd)} tone='info' />
+        <StatCard label='Doanh thu năm nay' value={formatCurrencyFromVnd(stats.revenueYearToDateVnd)} tone='info' />
+        <StatCard
+          label='Tổng doanh thu toàn kỳ'
+          value={formatCurrencyFromVnd(stats.revenueAllTimeVnd)}
+          delta='Toàn bộ dữ liệu hiện có trong hệ thống'
+          tone='info'
+        />
+      </section>
+
+      <section className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
         <StatCard label='Tổng lượt đặt sân' value={formatNumberVi(stats.totalBookings)} />
         <StatCard label='Người dùng hoạt động' value={formatNumberVi(stats.activeUsers)} tone='success' />
         <StatCard
-          label='Tỷ lệ sử dụng trung bình'
+          label='Công suất trung bình 30 ngày'
+          value={`${Number(stats.avgUtilizationLast30DaysPercent || 0).toFixed(1)}%`}
+          delta='Phản ánh nhịp vận hành ngắn hạn'
+          tone='warning'
+        />
+        <StatCard
+          label='Công suất trung bình toàn kỳ'
           value={`${Number(stats.avgUtilizationPercent || 0).toFixed(1)}%`}
           tone='warning'
         />
       </section>
 
       <section className='grid gap-4 xl:grid-cols-2'>
-        <ChartCard title='Doanh thu theo ngày' subtitle='Dữ liệu thực từ hệ thống'>
+        <ChartCard title='Doanh thu 30 ngày gần nhất' subtitle='Theo ngày để thấy biến động ngắn hạn'>
           <ResponsiveContainer width='100%' height='100%'>
             <LineChart data={charts.revenue}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
@@ -99,7 +117,33 @@ function AdminDashboard() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title='Tỷ lệ sử dụng theo sân' subtitle='So sánh hiệu suất từng sân'>
+        <ChartCard title='Doanh thu 12 tháng gần nhất' subtitle='Theo tháng để đọc xu hướng dài hạn'>
+          <ResponsiveContainer width='100%' height='100%'>
+            <BarChart data={monthRevenueSeries}>
+              <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
+              <XAxis dataKey='period' tick={{ fontSize: 12 }} stroke='#94a3b8' />
+              <YAxis tick={{ fontSize: 12 }} stroke='#94a3b8' />
+              <Tooltip formatter={(value) => formatCurrencyFromVnd(value)} labelFormatter={(label) => `Tháng: ${label}`} />
+              <Bar dataKey='revenueVnd' radius={[8, 8, 0, 0]} fill='#0d9488' />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </section>
+
+      <section className='grid gap-4 xl:grid-cols-2'>
+        <ChartCard title='Công suất 30 ngày gần nhất' subtitle='Theo ngày để đối chiếu với doanh thu ngắn hạn'>
+          <ResponsiveContainer width='100%' height='100%'>
+            <LineChart data={charts.utilizationSeries}>
+              <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
+              <XAxis dataKey='period' tick={{ fontSize: 12 }} stroke='#94a3b8' />
+              <YAxis tick={{ fontSize: 12 }} stroke='#94a3b8' domain={[0, 100]} />
+              <Tooltip formatter={(value) => `${value}%`} labelFormatter={(label) => `Ngày: ${label}`} />
+              <Line type='monotone' dataKey='usage' stroke='#0284c7' strokeWidth={3} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title='Tỷ lệ sử dụng theo sân' subtitle='So sánh hiệu suất giữa các sân'>
           <ResponsiveContainer width='100%' height='100%'>
             <BarChart data={charts.utilization}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />
@@ -131,7 +175,7 @@ function AdminDashboard() {
       </section>
 
       <section className='grid gap-4 xl:grid-cols-[1.1fr_0.9fr]'>
-        <ChartCard title='Tương quan doanh thu và công suất' subtitle='So sánh theo cùng mốc ngày để tránh lệch ngữ cảnh dữ liệu'>
+        <ChartCard title='Tương quan doanh thu và công suất 30 ngày' subtitle='Hai đường cùng theo ngày để đối chiếu dễ hơn'>
           <ResponsiveContainer width='100%' height='100%'>
             <LineChart data={mergedSeries}>
               <CartesianGrid strokeDasharray='3 3' stroke='#e2e8f0' />

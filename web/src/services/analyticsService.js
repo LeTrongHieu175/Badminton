@@ -68,14 +68,25 @@ export async function getAdminOverview() {
   return {
     stats: {
       totalRevenueVnd: Number(payload?.stats?.totalRevenueVnd || 0),
+      revenueTodayVnd: Number(payload?.stats?.revenueTodayVnd || 0),
+      revenueMonthToDateVnd: Number(payload?.stats?.revenueMonthToDateVnd || 0),
+      revenueYearToDateVnd: Number(payload?.stats?.revenueYearToDateVnd || 0),
+      revenueAllTimeVnd: Number(payload?.stats?.revenueAllTimeVnd || 0),
       totalBookings: Number(payload?.stats?.totalBookings || 0),
       activeUsers: Number(payload?.stats?.activeUsers || 0),
-      avgUtilizationPercent: Number(payload?.stats?.avgUtilizationPercent || 0)
+      avgUtilizationPercent: Number(payload?.stats?.avgUtilizationPercent || 0),
+      avgUtilizationLast30DaysPercent: Number(payload?.stats?.avgUtilizationLast30DaysPercent || 0)
     },
     charts: {
       revenue: Array.isArray(payload?.charts?.revenue)
         ? payload.charts.revenue.map((item) => ({
             period: item.date,
+            revenueVnd: Number(item.revenueVnd || 0)
+          }))
+        : [],
+      revenueByMonth: Array.isArray(payload?.charts?.revenueByMonth)
+        ? payload.charts.revenueByMonth.map((item) => ({
+            period: item.month,
             revenueVnd: Number(item.revenueVnd || 0)
           }))
         : [],

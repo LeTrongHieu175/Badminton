@@ -46,6 +46,42 @@ async function getRevenueSummary(startDate, endDate) {
   };
 }
 
+async function getMonthlyRevenueSeries(startDate, endDate) {
+  const result = await query(
+    `
+      WITH month_series AS (
+        SELECT generate_series(
+          date_trunc('month', $1::date),
+          date_trunc('month', $2::date),
+          interval '1 month'
+        )::date AS period_start
+      ),
+      revenue_by_month AS (
+        SELECT
+          date_trunc('month', b.booking_date)::date AS period_start,
+          COALESCE(SUM(${revenueExpression('b')}), 0)::BIGINT AS revenue_vnd
+        FROM bookings b
+        JOIN payments p ON p.booking_id = b.id
+        WHERE p.status = 'succeeded'
+          AND b.booking_date BETWEEN $1 AND $2
+        GROUP BY date_trunc('month', b.booking_date)::date
+      )
+      SELECT
+        to_char(ms.period_start, 'YYYY-MM') AS month,
+        COALESCE(rbm.revenue_vnd, 0)::BIGINT AS revenue_vnd
+      FROM month_series ms
+      LEFT JOIN revenue_by_month rbm ON rbm.period_start = ms.period_start
+      ORDER BY ms.period_start ASC
+    `,
+    [startDate, endDate]
+  );
+
+  return result.rows.map((row) => ({
+    month: row.month,
+    revenueVnd: Number(row.revenue_vnd || 0)
+  }));
+}
+
 async function getDailyUtilizationSeries(startDate, endDate) {
   const result = await query(
     `
@@ -278,6 +314,7 @@ async function getUtilizationByCourt() {
 
 module.exports = {
   getRevenueSummary,
+  getMonthlyRevenueSeries,
   getDailyUtilizationSeries,
   getPeakHours,
   getConfirmedBookingCount,
