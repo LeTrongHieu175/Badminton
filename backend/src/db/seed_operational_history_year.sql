@@ -355,6 +355,15 @@ inserted_bookings AS (
       COALESCE(sb.lock_expires_at, sb.created_at)
     )
   FROM stamped_bookings sb
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM bookings existing
+    WHERE existing.court_id = sb.court_id
+      AND existing.slot_id = sb.slot_id
+      AND existing.booking_date = sb.booking_date
+      AND existing.status IN ('LOCKED', 'CONFIRMED')
+      AND sb.status IN ('LOCKED', 'CONFIRMED')
+  )
   RETURNING id, status, created_at
 ),
 inserted_payments AS (
